@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeacherAI Lite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style id="app-style">
+/* Layout idea: a chalkboard-green classroom. Phone-shaped lesson stage on the left, lesson controls on the right; one column on a phone. */
+:root {
+  --ink: #101614;
+  --panel: #19211f;
+  --line: #2b3a35;
+  --chalk: #eef1ea;
+  --mute: #9bb0a7;
+  --mark: #f2c94c;
+  --on-mark: #17140a;
+  --danger: #ff8a80;
+  --ui: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ink); color: var(--chalk); font: 400 16px/1.5 var(--ui); }
+h1, h2, h3, p { margin: 0; text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+
+.top { max-width: 1100px; margin: 0 auto; padding: 18px 16px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.top h1 { font: 800 28px/1.1 var(--ui); letter-spacing: -0.02em; }
+.top h1 span { color: var(--mark); }
+.top p { color: var(--mute); font-size: 14px; max-width: 60ch; }
+
+.app { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 880px) { .app { grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); } .player { position: sticky; top: 16px; } }
+
+/* ---------- Stage (the lesson video) ---------- */
+.stage-wrap { width: min(100%, calc(74dvh * 9 / 16)); margin: 0 auto; }
+.stage {
+  position: relative; width: 100%; aspect-ratio: 9 / 16; overflow: hidden; border-radius: 14px;
+  container-type: inline-size; background: var(--s-bg); color: var(--s-ink);
+  border: 1px solid var(--line);
+  --s-bg: #f6f7f2; --s-ink: #1d2b3a; --s-accent: #2563eb; --s-on: #fff; --s-soft: #1d2b3a22;
+}
+.stage[data-theme="whiteboard"] { background-color: #f6f7f2; background-image: linear-gradient(#1d2b3a0d 1px, transparent 1px), linear-gradient(90deg, #1d2b3a0d 1px, transparent 1px); background-size: 8cqw 8cqw; --s-bg: #f6f7f2; --s-ink: #1d2b3a; }
+.stage[data-theme="chalkboard"] { background: radial-gradient(120% 90% at 50% 38%, #2b4b3e, #172a23); --s-bg: #1f372e; --s-ink: #f1f0e4; --s-soft: #f1f0e422; }
+.stage[data-theme="neon"] { background: linear-gradient(170deg, #0a0e24, #1a0b33); --s-bg: #0c0f28; --s-ink: #e8f0ff; --s-soft: #e8f0ff22; }
+.stage[data-theme="neon"] .art svg, .stage[data-theme="neon"] .title { filter: drop-shadow(0 0 1.2cqw var(--s-accent)); }
+.stage[data-theme="notebook"] {
+  background-color: #fdf8e8;
+  background-image: linear-gradient(90deg, transparent 11.6cqw, #e5484d66 11.6cqw 12cqw, transparent 12cqw), repeating-linear-gradient(transparent 0 8.4cqw, #5b8fd633 8.4cqw 8.8cqw);
+  --s-bg: #fdf8e8; --s-ink: #243b8f; --s-soft: #243b8f22;
+}
+.world { position: absolute; inset: 0; transform-origin: 50% 40%; will-change: transform; }
+.bar { position: absolute; top: 6cqw; left: 5cqw; right: 5cqw; display: flex; align-items: center; gap: 2cqw; font-size: 3.3cqw; font-weight: 600; z-index: 2; }
+.beat { background: var(--s-accent); color: var(--s-on); border-radius: 99px; padding: 0.5cqw 2.6cqw; text-transform: uppercase; letter-spacing: 0.08em; font-size: 3cqw; font-weight: 800; }
+.sect { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.7; }
+.count { opacity: 0.6; font-variant-numeric: tabular-nums; }
+.segs { position: absolute; top: 1.6cqw; left: 3cqw; right: 3cqw; display: flex; gap: 0.7cqw; z-index: 3; }
+.seg { flex: 1; height: 3.4cqw; padding: 1.2cqw 0; border: 0; background: none; cursor: pointer; }
+.seg::before { content: ""; display: block; height: 1cqw; border-radius: 1cqw; background: linear-gradient(90deg, var(--s-ink) calc(var(--p, 0) * 100%), var(--s-soft) 0); opacity: 0.85; }
+.seg.done::before { --p: 1; }
+.title {
+  position: absolute; left: 6cqw; right: 6cqw; top: 15cqw; margin: 0; text-align: center; line-height: 1.05;
+  font: 700 15cqw/1.05 var(--hand); color: var(--s-ink); --p: 0;
+  clip-path: inset(-10% calc((1 - var(--p)) * 100%) -10% 0); overflow-wrap: anywhere;
+}
+.underline { position: absolute; left: 14cqw; right: 14cqw; top: 33cqw; height: 4cqw; width: 72cqw; overflow: visible; }
+.underline path { fill: none; stroke: var(--s-accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1 2; stroke-dashoffset: 1; vector-effect: non-scaling-stroke; }
+.art { position: absolute; left: 50%; top: 40cqw; width: 56cqw; height: 56cqw; transform: translateX(-50%); }
+.art svg { width: 100%; height: 100%; overflow: visible; filter: url(#wobble); }
+.art path.d { fill: none; stroke: var(--s-ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 1; }
+.art path.d:nth-child(even) { stroke: var(--s-accent); }
+.pen { opacity: 0; }
+.pen line { stroke: var(--s-ink); stroke-width: 6; stroke-linecap: round; }
+.pen circle { fill: var(--s-accent); }
+.kw { position: absolute; left: 12cqw; right: 8cqw; top: 100cqw; margin: 0; padding: 0; list-style: none; display: grid; gap: 1.2cqw; }
+.kw li { display: flex; align-items: center; gap: 3cqw; --p: 0; opacity: calc(var(--p) * 5); }
+.kw .tick { width: 7cqw; height: 7cqw; flex: none; fill: none; stroke: var(--s-accent); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.kw .tick path { stroke-dasharray: 1 2; stroke-dashoffset: calc(1 - var(--p)); }
+.kwt { font: 700 8.6cqw/1.1 var(--hand); color: var(--s-ink); clip-path: inset(-10% calc((1 - var(--p)) * 100%) -10% 0); }
+.teacher { position: absolute; right: 4cqw; top: 82cqw; width: 19cqw; height: 19cqw; z-index: 1; }
+.teacher .mouth { transform-box: fill-box; transform-origin: center; }
+.cap {
+  position: absolute; left: 4cqw; right: 4cqw; bottom: 5cqw; margin: 0; padding: 2.4cqw 3cqw; text-align: center;
+  font: 800 6.8cqw/1.2 var(--ui); letter-spacing: -0.01em; border-radius: 3cqw; min-height: 22cqw; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 0.4cqw 1.4cqw;
+  background: color-mix(in srgb, var(--s-bg) 86%, transparent); color: var(--s-ink); z-index: 2;
+}
+.wait { position: absolute; left: 50%; bottom: 31cqw; transform: translateX(-50%); z-index: 3; white-space: nowrap; font: 700 3.6cqw/1 var(--ui); padding: 1.6cqw 3.4cqw; border-radius: 99px; background: var(--s-accent); color: var(--s-on); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.55; } }
+.w { display: inline-block; padding: 0 1cqw; border-radius: 1.4cqw; opacity: 0.55; transition: transform 0.12s ease; }
+.w.done { opacity: 1; }
+.w.on { opacity: 1; background: var(--s-accent); color: var(--s-on); transform: scale(1.1); }
+
+/* ---------- Controls ---------- */
+.controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
+.ib { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
+.ib:hover { border-color: var(--mute); }
+.ib svg { width: 22px; height: 22px; fill: currentColor; }
+.ib.big { width: 60px; height: 60px; background: var(--mark); color: var(--on-mark); border-color: var(--mark); }
+.ib.big svg { width: 28px; height: 28px; }
+.hand-btn { height: 48px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-weight: 600; }
+.hand-btn:hover { border-color: var(--mark); }
+.hand-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
+.btn { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover { border-color: var(--mute); }
+.btn.primary { background: var(--mark); color: var(--on-mark); border-color: var(--mark); font-weight: 800; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
+.card h2 { font: 800 18px/1.2 var(--ui); }
+.stack { display: grid; gap: 14px; }
+.row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--mute); }
+input[type=text], select, textarea { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #0f1513; padding: 10px 12px; color: var(--chalk); font-size: 15px; font-weight: 400; }
+textarea { resize: vertical; min-height: 120px; line-height: 1.45; }
+input[type=range] { width: 100%; accent-color: var(--mark); }
+.tabs { display: flex; gap: 6px; padding: 4px; background: #0f1513; border-radius: 12px; border: 1px solid var(--line); }
+.tab { flex: 1; min-height: 38px; border: 0; border-radius: 9px; background: none; cursor: pointer; font-weight: 600; color: var(--mute); }
+.tab[aria-selected=true] { background: var(--panel); color: var(--chalk); box-shadow: 0 0 0 1px var(--mark) inset; }
+.mk { display: flex; gap: 8px; }
+.voicebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.hint.err { color: var(--danger); }
+.status { min-height: 22px; font-size: 14px; color: var(--mute); }
+.status.err { color: var(--danger); }
+.status.ok { color: #7fe0b3; }
+.hint { font-size: 13px; color: var(--mute); }
+
+.hand { margin-top: 14px; border: 1px solid var(--mark); border-radius: 14px; padding: 14px; background: var(--panel); display: grid; gap: 10px; }
+.hand[hidden] { display: none; }
+.hand h3 { font: 800 16px/1.2 var(--ui); }
+.ask { display: flex; gap: 8px; }
+.ask input { flex: 1; min-width: 0; }
+.mic.live { background: var(--danger); color: #1a0d0b; border-color: var(--danger); }
+.answer { background: #0f1513; border-radius: 10px; padding: 12px; font-size: 15px; }
+.answer[hidden] { display: none; }
+
+.scenes { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sc { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; background: #141b19; }
+.sc.now { border-color: var(--mark); }
+.sc-h { display: flex; align-items: center; gap: 8px; }
+.jump { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 13px; }
+.chip { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--mark); }
+.sc textarea { min-height: 72px; }
+details.card summary { cursor: pointer; font-weight: 800; font-size: 16px; }
+details ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; color: var(--mute); font-size: 14px; }
+details b { color: var(--chalk); }
+@media (prefers-reduced-motion: reduce) { .w { transition: none; } .wait { animation: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs><filter id="wobble" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.6"/></filter></defs>
+</svg>
+
+<header class="top">
+  <h1>Teacher<span>AI</span> Lite</h1>
+  <p>Type a topic or paste notes. AI writes a slow, clear whiteboard lesson and a teacher reads it to you. If AI is not available, a built-in engine builds the lesson from your notes.</p>
+</header>
+
+<main class="app">
+  <section class="player" aria-label="Lesson player">
+    <div class="stage-wrap">
+      <div class="stage" id="stage" data-theme="whiteboard">
+        <div class="segs" id="segs"></div>
+        <div class="bar"><span class="beat" id="beat">Hook</span><span class="sect" id="sect"></span><span class="count" id="count"></span></div>
+        <div class="world" id="world">
+          <h2 class="title" id="title"></h2>
+          <svg class="underline" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path id="ul" pathLength="1" d="M2 6 C25 2 60 9 98 4"/></svg>
+          <div class="art"><svg id="icon" viewBox="0 0 100 100" aria-hidden="true"></svg></div>
+          <ul class="kw" id="kw"></ul>
+        </div>
+        <svg class="teacher" viewBox="0 0 60 60" aria-hidden="true">
+          <g id="bob">
+            <path d="M6 60 C6 45 19 41 30 41 C41 41 54 45 54 60 Z" fill="var(--s-accent)"/>
+            <circle cx="30" cy="26" r="15" fill="#f1c9a2"/>
+            <path d="M14.5 25 C14 7 46 7 45.5 25 C41 16 21 16 14.5 25 Z" fill="#3a2a22"/>
+            <circle cx="24" cy="27" r="5" fill="#fff" fill-opacity=".55" stroke="#2b2b2b" stroke-width="1.4"/>
+            <circle cx="36" cy="27" r="5" fill="#fff" fill-opacity=".55" stroke="#2b2b2b" stroke-width="1.4"/>
+            <path d="M29 27 H31" stroke="#2b2b2b" stroke-width="1.4"/>
+            <circle cx="24" cy="27" r="1.5" fill="#2b2b2b"/><circle cx="36" cy="27" r="1.5" fill="#2b2b2b"/>
+            <ellipse class="mouth" id="mouth" cx="30" cy="37" rx="4" ry="2" fill="#7a2f2f"/>
+          </g>
+        </svg>
+        <p class="cap" id="cap" aria-live="off"></p>
+        <div class="wait" id="waitTag" hidden>The teacher is getting ready to speak…</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ib" id="prev" aria-label="Previous scene"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="ib big" id="play" aria-label="Play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+      <button class="ib" id="next" aria-label="Next scene"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg></button>
+      <button class="hand-btn" id="handBtn" aria-expanded="false" aria-controls="hand">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4a1.5 1.5 0 0 1 3 0v7m0-5a1.5 1.5 0 0 1 3 0v6m0-3a1.5 1.5 0 0 1 3 0v5.5a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-5-2.7L4 14.5a1.5 1.5 0 0 1 2.4-1.8L8 14"/></svg>
+        Raise hand
+      </button>
+    </div>
+
+    <section class="hand" id="hand" hidden aria-label="Ask the teacher">
+      <h3>Ask the teacher</h3>
+      <form class="ask" id="askForm">
+        <input type="text" id="askIn" placeholder="Ask about this lesson" aria-label="Your question" autocomplete="off">
+        <button class="ib mic" id="mic" type="button" aria-label="Speak your question" hidden><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V22h2v-3.1A7 7 0 0 0 19 12z"/></svg></button>
+        <button class="btn primary" type="submit">Ask</button>
+      </form>
+      <div class="answer" id="answer" hidden></div>
+      <div><button class="btn" id="handClose" type="button">Back to the lesson</button></div>
+    </section>
+
+    <div class="actions">
+      <button class="btn" id="saveLesson">Save lesson</button>
+      <button class="btn" id="saveNotes">Save notes</button>
+      <button class="btn" id="copyScript">Copy script</button>
+      <button class="btn" id="saveApp">Save app copy</button>
+    </div>
+  </section>
+
+  <section class="side stack">
+    <form class="card" id="build" autocomplete="off">
+      <h2>Make a lesson</h2>
+      <label for="src">What should the teacher explain?
+        <textarea id="src" rows="5" placeholder="Type a topic, like How black holes form. Or paste notes or an article."></textarea>
+      </label>
+      <p class="hint" id="srcHint"></p>
+      <div><button type="button" class="btn" id="openFile">Open a text file</button> <input type="file" id="file" accept=".txt,.md,.markdown,.html,.htm,.csv,.json,text/*" hidden></div>
+      <div class="row">
+        <label for="len">Length
+          <select id="len"><option value="30">About 30 seconds</option><option value="60" selected>About 1 minute</option><option value="180">About 3 minutes</option><option value="300">About 5 minutes</option><option value="600">About 10 minutes</option></select>
+        </label>
+        <label for="how">How to explain
+          <select id="how"><option value="simple">Short and simple</option><option value="balanced" selected>Balanced</option><option value="exam">Exam focus</option></select>
+        </label>
+      </div>
+      <div class="row">
+        <label for="theme">Board style
+          <select id="theme"><option value="whiteboard">Whiteboard</option><option value="chalkboard">Chalkboard</option><option value="neon">Neon night</option><option value="notebook">Notebook paper</option></select>
+        </label>
+        <label for="styleDesc">Or describe it
+          <input type="text" id="styleDesc" placeholder="e.g. purple neon galaxy">
+        </label>
+      </div>
+      <div class="row">
+        <label for="voice">Teacher voice<select id="voice"></select></label>
+        <label for="rate">Speaking speed <input type="range" id="rate" min="0.6" max="1.2" step="0.05" value="0.85"></label>
+      </div>
+      <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><span class="hint" id="voiceNote"></span></div>
+      <p class="hint" id="cvNote"></p>
+      <div class="mk"><button class="btn primary" type="submit" id="make">Make lesson</button><button type="button" class="btn" id="stop" hidden>Stop</button></div>
+      <p class="hint" id="aiNote">Checking for AI…</p>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <details class="card" id="keyBox">
+      <summary>Use your own AI key</summary>
+      <p class="hint">For the saved copy of this page, opened in your own browser. When Claude is not available there, the lesson writer uses your own Claude or Grok key. The key stays on this device.</p>
+      <div class="row">
+        <label for="kProv">AI<select id="kProv"><option value="anthropic">Claude (Anthropic)</option><option value="xai">Grok (xAI)</option><option value="custom">Other (OpenAI-compatible)</option></select></label>
+        <label for="kModel">Model (optional)<input type="text" id="kModel" placeholder="default"></label>
+      </div>
+      <label for="kKey">API key<input type="text" id="kKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
+      <label for="kBase" id="kBaseWrap" hidden>Base URL<input type="text" id="kBase" placeholder="https://example.com/v1"></label>
+    </details>
+
+    <section class="card" aria-label="Lesson script">
+      <h2 id="scriptH">Lesson script</h2>
+      <p class="hint">Edit what the teacher says and the words written on the board. Changes apply right away.</p>
+      <ol class="scenes" id="scenes"></ol>
+    </section>
+
+    <details class="card">
+      <summary>What works in this page</summary>
+      <ul>
+        <li><b>Lessons:</b> AI writes the lesson from a topic you type, or only from the notes you paste. Inside Claude it uses your own Claude usage and asks your permission first.</li>
+        <li><b>Without AI</b> (for example after a subscription ends): the built-in engine builds the lesson from pasted notes, with no account or server. In the saved copy you can add your own Claude or Grok key.</li>
+        <li><b>Voice:</b> Claude's voices where Claude offers them (a computer browser or the Claude desktop app). Otherwise the best voice on your device: on iPhone, download a free Premium voice such as Ava or Zoe in Settings, Accessibility, Spoken Content, Voices. In the saved copy opened in a browser, natural Kokoro voices (Heart, Michael, Bella, Fenrir) also run on your own device after a one-time download of about 95 MB. Use Test voice if you hear nothing.</li>
+        <li><b>Save app copy</b> keeps this page as one file that runs in any browser.</li>
+        <li><b>Only in the full TeacherAI app:</b> MP4 video export, PDF and photo reading, podcasts.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script type="text/plain" id="kokoro-worker">
+// TeacherAI natural voice worker: Kokoro-82M (Apache-2.0) on ONNX Runtime Web; phonemes from eSpeak NG via phonemizer.js.
+// Text normalisation follows kokoro-js (Apache-2.0, Hugging Face).
+let ort = null, phonemize = null, session = null, vocab = null, chain = Promise.resolve();
+const voices = new Map();
+function splitNum(e){if(e.includes("."))return e;if(e.includes(":")){let[a,t]=e.split(":").map(Number);return 0===t?`${a} o'clock`:t<10?`${a} oh ${t}`:`${a} ${t}`}let a=parseInt(e.slice(0,4),10);if(a<1100||a%1e3<10)return e;let t=e.slice(0,2),r=parseInt(e.slice(2,4),10),n=e.endsWith("s")?"s":"";if(a%1e3>=100&&a%1e3<=999){if(0===r)return`${t} hundred${n}`;if(r<10)return`${t} oh ${r}${n}`}return`${t} ${r}${n}`}
+function flipMoney(e){const a="$"===e[0]?"dollar":"pound";if(isNaN(Number(e.slice(1))))return`${e.slice(1)} ${a}s`;if(!e.includes(".")){let t="1"===e.slice(1)?"":"s";return`${e.slice(1)} ${a}${t}`}const[t,r]=e.slice(1).split("."),n=parseInt(r.padEnd(2,"0"),10);return`${t} ${a}${"1"===t?"":"s"} and ${n} ${"$"===e[0]?1===n?"cent":"cents":1===n?"penny":"pence"}`}
+function pointNum(e){let[a,t]=e.split(".");return`${a} point ${t.split("").join(" ")}`}
+function normalizeText(e){return e.replace(/[‘’]/g,"'").replace(/«/g,"“").replace(/»/g,"”").replace(/[“”]/g,'"').replace(/\(/g,"«").replace(/\)/g,"»").replace(/[^\S \n]/g," ").replace(/  +/," ").replace(/(?<=\n) +(?=\n)/g,"").replace(/\bD[Rr]\.(?= [A-Z])/g,"Doctor").replace(/\b(?:Mr\.|MR\.(?= [A-Z]))/g,"Mister").replace(/\b(?:Ms\.|MS\.(?= [A-Z]))/g,"Miss").replace(/\b(?:Mrs\.|MRS\.(?= [A-Z]))/g,"Mrs").replace(/\betc\.(?! [A-Z])/gi,"etc").replace(/\b(y)eah?\b/gi,"$1e'a").replace(/\d*\.\d+|\b\d{4}s?\b|(?<!:)\b(?:[1-9]|1[0-2]):[0-5]\d\b(?!:)/g,splitNum).replace(/(?<=\d),(?=\d)/g,"").replace(/[$£]\d+(?:\.\d+)?(?: hundred| thousand| (?:[bm]|tr)illion)*\b|[$£]\d+\.\d\d?\b/gi,flipMoney).replace(/\d*\.\d+/g,pointNum).replace(/(?<=\d)-(?=\d)/g," to ").replace(/(?<=\d)S/g," S").replace(/(?<=[BCDFGHJ-NP-TV-Z])'?s\b/g,"'S").replace(/(?<=X')S\b/g,"s").replace(/(?:[A-Za-z]\.){2,} [a-z]/g,(e=>e.replace(/\./g,"-"))).replace(/(?<=[A-Z])\.(?=[A-Z])/gi,"-").trim()}
+const PUNCT = ';:,.!?¡¿—…"«»“”(){}[]';
+const PUNCT_RE = new RegExp(`(\\s*[${PUNCT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}]+\\s*)+`, "g");
+async function toPhonemes(text) {
+  text = normalizeText(text);
+  const parts = []; let last = 0;
+  for (const m of text.matchAll(PUNCT_RE)) { if (last < m.index) parts.push([false, text.slice(last, m.index)]); if (m[0].length) parts.push([true, m[0]]); last = m.index + m[0].length; }
+  if (last < text.length) parts.push([false, text.slice(last)]);
+  const ph = (await Promise.all(parts.map(async ([p, t]) => (p ? t : (await phonemize(t, "en-us")).join(" "))))).join("");
+  return ph.replace(/kəkˈoːɹoʊ/g, "kˈoʊkəɹoʊ").replace(/kəkˈɔːɹəʊ/g, "kˈəʊkəɹəʊ").replace(/ʲ/g, "j").replace(/r/g, "ɹ").replace(/x/g, "k").replace(/ɬ/g, "l").replace(/(?<=[a-zɹː])(?=hˈʌndɹɪd)/g, " ").replace(/ z(?=[;:,.!?¡¿—…"«»“” ]|$)/g, "z").replace(/(?<=nˈaɪn)ti(?!ː)/g, "di").trim();
+}
+function voice(url) {
+  if (!voices.has(url)) voices.set(url, fetch(url).then((r) => { if (!r.ok) throw new Error("voice file failed (" + r.status + ")"); return r.arrayBuffer(); }).then((b) => new Float32Array(b)));
+  return voices.get(url);
+}
+async function synth(text, voiceUrl, speed) {
+  const ph = await toPhonemes(text);
+  const ids = [0]; for (const ch of ph) { const id = vocab[ch]; if (id !== undefined) ids.push(id); }
+  if (ids.length > 511) ids.length = 511; ids.push(0);
+  const v = await voice(voiceUrl);
+  const n = Math.min(Math.max(ids.length - 2, 0), 509);
+  const out = await session.run({
+    input_ids: new ort.Tensor("int64", BigInt64Array.from(ids, (x) => BigInt(x)), [1, ids.length]),
+    style: new ort.Tensor("float32", v.slice(n * 256, (n + 1) * 256), [1, 256]),
+    speed: new ort.Tensor("float32", new Float32Array([speed]), [1]),
+  });
+  return out.waveform.data;
+}
+self.onmessage = (ev) => {
+  const m = ev.data;
+  chain = chain.then(async () => {
+    try {
+      if (m.type === "init") {
+        if (!session) {
+          ort = await import(m.ortModule);
+          ort.env.wasm.wasmPaths = m.ortBase; ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+          ({ phonemize } = await import(m.phonemizer));
+          vocab = m.vocab;
+          session = await ort.InferenceSession.create(m.model, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+        }
+        self.postMessage({ type: "ready", id: m.id });
+      } else if (m.type === "synth") {
+        const t0 = performance.now();
+        const samples = new Float32Array(await synth(m.text, m.voice, m.speed));
+        self.postMessage({ type: "audio", id: m.id, samples, ms: performance.now() - t0 }, [samples.buffer]);
+      }
+    } catch (e) { self.postMessage({ type: "error", id: m.id, message: String((e && e.message) || e) }); }
+  });
+};
+</script>
+<script id="app-script">
+(() => {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("taiLite." + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("taiLite." + k, JSON.stringify(v)); } catch { /* storage may be blocked */ } },
+};
+const cap = async (name) => { try { return (await window.claude?.use?.(name)) ?? null; } catch { return null; } };
+
+// Copy of this page's own source, taken before anything is drawn, so "Save app copy" can hand it back.
+const PRISTINE = (() => {
+  try {
+    const root = document.documentElement.cloneNode(true);
+    root.querySelectorAll("script:not(#app-script):not(#kokoro-worker), meta[http-equiv]").forEach((n) => n.remove());
+    return "<!DOCTYPE html>\n" + root.outerHTML;
+  } catch { return ""; }
+})();
+
+/* =====================================================================
+   Lesson engine (no AI): sentence scoring by term frequency, rule-based icons
+   ===================================================================== */
+const STOP = new Set(("a about above after again all also am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers him his how i if in into is it its itself just me more most my no nor not of off on once only or other our out over own same she should so some such than that the their them then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your one two may many often known called however since used use using like new first made make makes also well way much even still every among within without around others another being become becomes").split(" "));
+const stem = (w) => { if (w.length <= 4) return w; const s = w.replace(/(ing|edly|ed|ly|es|s)$/, ""); return s.length >= 3 ? s : w; };
+const wordsOf = (s) => s.trim().split(/\s+/).filter(Boolean);
+const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function splitSentences(p) {
+  p = p.replace(/\[[^\]]*\]/g, "").replace(/\s*\([^()]*\)/g, "").replace(/\s+/g, " ").trim();
+  p = p.replace(/\b(?:[A-Za-z]\.){2,}/g, (m) => m.replace(/\./g, "\u0001")).replace(/\b(Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No|Fig|approx|ca)\./g, "$1\u0001");
+  const out = [];
+  for (let s of p.split(/(?<=[.!?]["”')]?)\s+(?=[A-Z0-9"“‘(])/)) {
+    s = s.replace(/\u0001/g, ".").trim();
+    let n = wordsOf(s).length;
+    if (n > 45) { const cut = s.split(/;\s+/)[0]; if (wordsOf(cut).length >= 8 && wordsOf(cut).length <= 45) { s = cut.replace(/[,:;]$/, "") + "."; n = wordsOf(s).length; } else continue; }
+    if (n < 5 || /[:]$/.test(s)) continue;
+    if ((s.match(/[0-9]/g) || []).length / s.length > 0.2) continue;
+    if (!/[.!?]["”')]?$/.test(s)) s += ".";
+    out.push(s);
+  }
+  return out;
+}
+
+function analyse(raw, titleHint) {
+  const SKIP = /^(see also|references|external links|further reading|notes|sources|bibliography|footnotes|citations)$/i;
+  const lines = raw.replace(/\r/g, "").split("\n");
+  const sentences = []; const headings = [];
+  let heading = "", skipping = false, buf = [];
+  const flush = () => { const para = buf.join(" "); buf = []; if (!para.trim() || skipping) return; for (const t of splitSentences(para)) sentences.push({ text: t, section: heading }); };
+  for (const line of lines) {
+    const m = line.match(/^\s*={2,}\s*(.+?)\s*={2,}\s*$/) || line.match(/^\s*#{1,4}\s+(.+?)\s*$/);
+    const t = line.trim();
+    const plainHead = !m && !buf.length && t && t.length < 60 && wordsOf(t).length <= 8 && !/[.!?:;,]$/.test(t);
+    if (m || plainHead) { flush(); heading = (m ? m[1] : t).replace(/[*_`]/g, ""); skipping = SKIP.test(heading); if (!skipping && !headings.includes(heading)) headings.push(heading); continue; }
+    if (!t) { flush(); continue; }
+    buf.push(t);
+  }
+  flush();
+  const tf = new Map(), surf = new Map();
+  sentences.forEach((s, i) => {
+    s.i = i; s.words = wordsOf(s.text).length;
+    const toks = (s.text.toLowerCase().match(/[a-z][a-z'-]{2,}/g) || []).filter((w) => !STOP.has(w));
+    s.stems = [...new Set(toks.map(stem))];
+    for (const w of toks) { const k = stem(w); tf.set(k, (tf.get(k) || 0) + 1); const m2 = surf.get(k) || new Map(); m2.set(w, (m2.get(w) || 0) + 1); surf.set(k, m2); }
+  });
+  const weight = (k) => Math.pow(tf.get(k) || 0, 0.85) * (1 + 0.04 * k.length);
+  const word = (k) => { const m2 = surf.get(k); if (!m2) return k; return cap1([...m2.entries()].sort((a, b) => b[1] - a[1])[0][0]); };
+  const top = (stems, n, avoid = new Set()) => [...new Set(stems)].filter((k) => !avoid.has(k) && /^[a-z]/.test(k)).sort((a, b) => weight(b) - weight(a)).slice(0, n);
+  const allTop = top([...tf.keys()], 6);
+  const title = (titleHint || "").trim() || headings[0] || (allTop[0] ? word(allTop[0]) : "Lesson");
+  return { sentences, headings, tf, weight, word, top, allTop, title, titleHint: (titleHint || "").trim() };
+}
+
+// Picks the strongest words and joins neighbours that appear together ("carbon dioxide").
+function boardWords(a, text, stems, n, avoid) {
+  const set = new Set(a.top(stems, n + 2, avoid));
+  const toks = text.match(/[A-Za-z][A-Za-z'-]+/g) || [];
+  const seen = new Set(), out = [];
+  for (let j = 0; j < toks.length; j++) {
+    const k = stem(toks[j].toLowerCase());
+    if (!set.has(k) || seen.has(k)) continue;
+    seen.add(k); const parts = [toks[j]];
+    const nx = toks[j + 1];
+    if (nx) { const k2 = stem(nx.toLowerCase()); if (set.has(k2) && !seen.has(k2)) { seen.add(k2); parts.push(nx); } }
+    out.push({ t: cap1(parts.join(" ").toLowerCase()), w: a.weight(k) });
+  }
+  return out.sort((x, y) => y.w - x.w).slice(0, n).map((x) => x.t);
+}
+
+const DEF = /\b(is|are|was|were) (a|an|the)\b|\b(called|known as|defined as|refers to|means)\b/i;
+const EXAMPLE = /\b(for example|for instance|such as|imagine|like a|e\.g\.)\b/i;
+
+const ICON_KEYS = {
+  leaf: ["plant", "biolog", "photosynth", "nature", "forest", "ecolog", "environment", "organism", "cell", "animal", "chlorophyll", "leaf", "leav", "agricultur", "species", "evolut", "gene", "oxygen"],
+  sun: ["sun", "light", "solar", "heat", "warm", "summer", "bright", "lamp"],
+  flask: ["chemi", "science", "experiment", "molecul", "atom", "acid", "laborator", "compound", "element", "substance", "energ", "react"],
+  rocket: ["space", "rocket", "launch", "orbit", "galaxy", "nasa", "mission", "astronom", "satellit", "gravit", "planet", "universe"],
+  globe: ["earth", "world", "countr", "global", "geograph", "continent", "ocean", "climat", "nation", "atmospher"],
+  heart: ["heart", "health", "medic", "body", "blood", "disease", "life", "brain", "immune", "nutri", "food", "vaccin"],
+  people: ["people", "societ", "popul", "social", "communit", "cultur", "politic", "govern", "citizen", "family", "human", "religio"],
+  coin: ["money", "price", "cost", "trade", "financ", "bank", "business", "tax", "wealth", "income", "econom", "invest", "profit"],
+  computer: ["comput", "software", "program", "internet", "digital", "algorithm", "code", "network", "robot", "artifici", "website", "electr"],
+  castle: ["empire", "king", "medieval", "castle", "kingdom", "revolution", "roman", "dynasty", "battle", "army", "soldier", "emperor", "war"],
+  clock: ["time", "year", "centur", "period", "decade", "histor", "ancient", "era", "season", "schedul"],
+  book: ["book", "read", "literat", "author", "novel", "educat", "school", "learn", "lesson", "grammar", "languag", "poem", "poet", "write"],
+  magnifier: ["research", "analy", "evidence", "investig", "search", "observ", "measure", "microscop", "examin", "test"],
+  gear: ["machine", "engine", "process", "system", "mechan", "engineer", "technolog", "device", "motor", "industr", "manufactur", "function", "cycle"],
+  tree: ["tree", "wood", "fruit", "seed", "root", "garden", "flower"],
+  house: ["house", "home", "build", "architect", "city", "urban", "village", "construct"],
+  chart: ["data", "statist", "growth", "percent", "rate", "increas", "decreas", "average", "graph", "number", "level", "amount", "factor"],
+  bulb: ["idea", "think", "invent", "discover", "innovat", "concept", "theor", "creativ", "insight", "intellig"],
+};
+const FALLBACK_ICONS = ["star", "bulb", "book", "magnifier", "gear", "globe"];
+const pickIcon = (stems, k) => { for (const s of stems) for (const [icon, keys] of Object.entries(ICON_KEYS)) if (keys.some((p) => s.startsWith(p))) return icon; return FALLBACK_ICONS[k % FALLBACK_ICONS.length]; };
+
+const BEATS = { hook: "Hook", core: "Key idea", example: "Example", analogy: "Analogy", check: "Quick check", recap: "Recap" };
+
+function plan(a, { seconds, how }) {
+  const notes = [];
+  if (a.sentences.length < 3) throw new Error("There isn't enough text to make a lesson. Add a few more sentences.");
+  const n = clamp(Math.round(seconds / 13), 4, 46);
+  const hasCheck = seconds >= 60;
+  const coreN = Math.max(1, n - 2 - (hasCheck ? 1 : 0));
+  const titleStems = new Set(a.title.toLowerCase().split(/\s+/).map(stem));
+  const lead = a.sentences[0];
+  const pool = a.sentences.filter((s) => s !== lead);
+  for (const s of pool) {
+    let sc = [...s.stems].reduce((acc, k) => acc + Math.pow(a.tf.get(k) || 0, 0.85), 0) / Math.pow(s.words, 0.7);
+    if (how === "simple") sc *= s.words <= 22 ? 1.25 : s.words <= 30 ? 1 : 0.7;
+    if (how === "exam") sc *= (DEF.test(s.text) ? 1.4 : 1) * (/\d/.test(s.text) ? 1.15 : 1);
+    s.score = sc;
+  }
+  const budget = coreN * 24; const chosen = []; let total = 0;
+  for (const s of [...pool].sort((x, y) => y.score - x.score)) {
+    if (total >= budget) break;
+    const dup = chosen.some((c) => { const inter = c.stems.filter((k) => s.stems.includes(k)).length; return inter / Math.max(1, Math.min(c.stems.length, s.stems.length)) > 0.6; });
+    if (dup) continue;
+    chosen.push(s); total += s.words;
+  }
+  chosen.sort((x, y) => x.i - y.i);
+  const groups = []; let cur = [];
+  for (const s of chosen) {
+    cur.push(s);
+    if (cur.reduce((t, x) => t + x.words, 0) >= 16) { groups.push(cur); cur = []; }
+  }
+  if (cur.length) groups.push(cur);
+  const core = groups.slice(0, coreN);
+  if (core.length < coreN) notes.push(`This text only had enough material for ${core.length} key ideas. Add more text for a longer lesson.`);
+
+  const scenes = []; const used = new Set(titleStems);
+  const docText = a.sentences.map((x) => x.text).join(" ");
+  scenes.push({
+    beat: "hook", section: lead.section || "",
+    narration: `Today's lesson: ${a.title}. ${lead.text}`,
+    board: [a.title, ...boardWords(a, docText, [...a.tf.keys()], 3, titleStems)],
+    icon: pickIcon([...lead.stems].sort((x, y) => a.weight(y) - a.weight(x)), 0),
+  });
+  core.forEach((g, k) => {
+    const text = g.map((x) => x.text).join(" ");
+    const stems = [...new Set(g.flatMap((x) => x.stems))];
+    const kws = a.top(stems, 4, titleStems);
+    const beat = EXAMPLE.test(text) ? "example" : "core";
+    scenes.push({ beat, section: g[0].section || "", narration: text, board: boardWords(a, text, stems, 4, titleStems), icon: pickIcon(kws, k + 1) });
+    kws.forEach((x) => used.add(x));
+  });
+  const coreText = core.flat().map((x) => x.text).join(" ");
+  const recapKw = boardWords(a, coreText || docText, core.length ? core.flatMap((g) => g.flatMap((x) => x.stems)) : [...a.tf.keys()], 3, titleStems);
+  if (hasCheck) {
+    const q = a.titleHint ? a.title.toLowerCase() : (a.allTop[0] ? a.word(a.allTop[0]).toLowerCase() : a.title.toLowerCase());
+    scenes.push({ beat: "check", section: "", narration: `Quick check. In your own words, what is ${q}? Pause and think about it, then raise your hand if you would like help.`, board: ["Quick check", cap1(q)], icon: "ask" });
+  }
+  const list = recapKw.map((k) => k.toLowerCase());
+  const said = list.length > 1 ? list.slice(0, -1).join(", ") + " and " + list[list.length - 1] : list[0] || a.title.toLowerCase();
+  scenes.push({ beat: "recap", section: "", narration: `Let's recap. The big ideas were ${said}. Great work today!`, board: ["Recap", ...recapKw], icon: "star" });
+  return { title: a.title, scenes, notes };
+}
+
+function answerFrom(a, q) {
+  const qs = [...new Set((q.toLowerCase().match(/[a-z][a-z'-]{2,}/g) || []).filter((w) => !STOP.has(w)).map(stem))];
+  if (!qs.length) return null;
+  const defQ = /^\s*(what is|what are|what's|define|who is|who was)\b/i.test(q);
+  const scored = a.sentences.map((s) => {
+    const hit = qs.filter((k) => s.stems.includes(k));
+    if (!hit.length) return null;
+    const w = hit.reduce((t, k) => t + 1 + 1 / (1 + Math.log(1 + (a.tf.get(k) || 0))), 0);
+    return { s, hit: hit.length, score: (w / Math.sqrt(s.words)) * (defQ && DEF.test(s.text) ? 1.3 : 1) };
+  }).filter(Boolean).sort((x, y) => y.score - x.score);
+  if (!scored.length || scored[0].hit / qs.length < 0.34) return null;
+  const best = scored[0].score; const picks = [scored[0].s];
+  for (const c of scored.slice(1, 4)) { if (picks.length >= 2) break; if (c.score >= best * 0.6 && !picks.some((p) => p.text === c.s.text)) picks.push(c.s); }
+  return picks.sort((x, y) => x.i - y.i).map((p) => p.text).join(" ");
+}
+
+function styleFrom(themeSel, desc) {
+  let theme = themeSel, accent = null; const d = (desc || "").toLowerCase();
+  if (d) {
+    if (/neon|cyber|glow|space|night|dark|galaxy|synth/.test(d)) theme = "neon";
+    else if (/chalk|class ?room|school|green ?board|blackboard/.test(d)) theme = "chalkboard";
+    else if (/note ?book|paper|sketch|pencil|diary|journal|lined/.test(d)) theme = "notebook";
+    else if (/white ?board|marker|clean|minimal|bright|light/.test(d)) theme = "whiteboard";
+    const C = { red: "#e5484d", crimson: "#d6336c", orange: "#f2762e", gold: "#f2c94c", yellow: "#f2c94c", lime: "#84cc16", green: "#3fb27f", teal: "#14b8a6", cyan: "#22d3ee", blue: "#3b82f6", navy: "#1d4ed8", purple: "#8b5cf6", violet: "#8b5cf6", pink: "#ec4899", magenta: "#d946ef" };
+    for (const k of Object.keys(C)) if (d.includes(k)) accent = C[k];
+  }
+  const def = { whiteboard: "#2563eb", chalkboard: "#f2c94c", neon: "#22d3ee", notebook: "#e5484d" };
+  return { theme, accent: accent || def[theme] };
+}
+const onColor = (hex) => { const n = parseInt(hex.slice(1), 16); const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; return l > 0.6 ? "#14181b" : "#ffffff"; };
+
+/* =====================================================================
+   Icons (hand-drawn line art, 100x100)
+   ===================================================================== */
+const circ = (cx, cy, r) => `M${cx + r} ${cy} A${r} ${r} 0 1 1 ${cx - r} ${cy} A${r} ${r} 0 1 1 ${cx + r} ${cy}`;
+const ICONS = {
+  bulb: ["M50 12 C31 12 21 27 21 41 C21 54 30 60 36 68 L36 76 H64 V68 C70 60 79 54 79 41 C79 27 69 12 50 12 Z", "M38 85 H62", "M43 93 H57", "M43 76 V60 L50 52 L57 60 V76"],
+  book: ["M10 24 C26 18 40 20 50 28 C60 20 74 18 90 24 L90 78 C74 72 60 74 50 82 C40 74 26 72 10 78 Z", "M50 28 L50 82", "M20 38 C28 36 34 37 42 41", "M20 51 C28 49 34 50 42 54", "M58 41 C66 37 72 36 80 38", "M58 54 C66 50 72 49 80 51"],
+  globe: [circ(50, 50, 40), "M10 50 H90", "M50 10 C30 28 30 72 50 90 C70 72 70 28 50 10", "M16 30 C40 38 60 38 84 30", "M16 70 C40 62 60 62 84 70"],
+  clock: [circ(50, 50, 40), "M50 24 V50 L68 62", "M50 12 V18", "M88 50 H82", "M50 88 V82", "M12 50 H18"],
+  gear: [circ(50, 50, 28), circ(50, 50, 13), "M78 50 L90 50", "M69.8 69.8 L78.3 78.3", "M50 78 L50 90", "M30.2 69.8 L21.7 78.3", "M22 50 L10 50", "M30.2 30.2 L21.7 21.7", "M50 22 L50 10", "M69.8 30.2 L78.3 21.7"],
+  leaf: ["M20 80 C14 40 40 14 86 14 C86 60 60 86 20 80 Z", "M20 80 C34 60 50 44 70 30", "M38 66 L38 50", "M50 54 L64 56"],
+  flask: ["M40 12 H60", "M44 12 V38 L18 80 C14 88 18 90 24 90 H76 C82 90 86 88 82 80 L56 38 V12", "M28 68 C40 62 60 74 72 68", circ(46, 80, 3), circ(58, 78, 2)],
+  magnifier: [circ(42, 42, 28), "M62 62 L90 90", "M28 36 C30 30 34 26 40 24"],
+  rocket: ["M50 8 C66 22 70 44 66 66 H34 C30 44 34 22 50 8 Z", circ(50, 38, 6), "M34 54 L20 72 L34 70", "M66 54 L80 72 L66 70", "M42 74 C46 84 50 92 50 92 C50 92 54 84 58 74"],
+  chart: ["M14 12 V86 H90", "M26 86 V62 H38 V86", "M46 86 V44 H58 V86", "M66 86 V26 H78 V86", "M22 44 L44 28 L60 34 L84 12"],
+  heart: ["M50 86 C14 58 14 22 34 18 C44 16 50 24 50 30 C50 24 56 16 66 18 C86 22 86 58 50 86 Z", "M24 40 C24 34 28 30 33 29"],
+  people: [circ(34, 32, 10), "M16 80 C16 56 52 56 52 80", circ(68, 38, 8), "M56 80 C56 62 82 60 86 80"],
+  coin: [circ(50, 50, 40), "M58 34 C50 28 38 30 38 38 C38 48 62 50 62 62 C62 70 50 72 42 66", "M50 22 V78"],
+  computer: ["M12 20 H88 V66 H12 Z", "M40 82 H60", "M50 66 V82", "M24 32 H46", "M24 42 H62", "M24 52 H38"],
+  tree: ["M50 92 V58", "M50 10 C74 10 86 30 74 46 C80 60 64 68 50 62 C36 68 20 60 26 46 C14 30 26 10 50 10 Z", "M50 74 L62 64", "M50 70 L40 62"],
+  house: ["M10 50 L50 14 L90 50", "M20 44 V88 H80 V44", "M42 88 V62 H58 V88", "M68 26 V16 H76 V32"],
+  castle: ["M16 88 V34 H30 V42 H40 V34 H60 V42 H70 V34 H84 V88 Z", "M42 88 V66 C42 56 58 56 58 66 V88", "M24 52 V60", "M76 52 V60"],
+  sun: [circ(50, 50, 14), "M50 14 V26", "M50 74 V86", "M14 50 H26", "M74 50 H86", "M24.5 24.5 L33 33", "M67 67 L75.5 75.5", "M24.5 75.5 L33 67", "M67 33 L75.5 24.5"],
+  star: ["M50 10 L61 38 L90 40 L67 58 L75 88 L50 71 L25 88 L33 58 L10 40 L39 38 Z"],
+  ask: ["M32 36 C32 12 72 12 72 36 C72 52 50 50 50 66", "M50 80 V84"],
+};
+
+/* =====================================================================
+   Voice: Claude voice if the host offers it, else the device's voices, else captions only
+   ===================================================================== */
+/* =====================================================================
+   Natural voice: Kokoro-82M running on this device (in a worker), about 95 MB the first time
+   ===================================================================== */
+const KOKORO_VOCAB = {";":1,":":2,",":3,".":4,"!":5,"?":6,"—":9,"…":10,"\"":11,"(":12,")":13,"“":14,"”":15," ":16,"̃":17,"ʣ":18,"ʥ":19,"ʦ":20,"ʨ":21,"ᵝ":22,"ꭧ":23,"A":24,"I":25,"O":31,"Q":33,"S":35,"T":36,"W":39,"Y":41,"ᵊ":42,"a":43,"b":44,"c":45,"d":46,"e":47,"f":48,"h":50,"i":51,"j":52,"k":53,"l":54,"m":55,"n":56,"o":57,"p":58,"q":59,"r":60,"s":61,"t":62,"u":63,"v":64,"w":65,"x":66,"y":67,"z":68,"ɑ":69,"ɐ":70,"ɒ":71,"æ":72,"β":75,"ɔ":76,"ɕ":77,"ç":78,"ɖ":80,"ð":81,"ʤ":82,"ə":83,"ɚ":85,"ɛ":86,"ɜ":87,"ɟ":90,"ɡ":92,"ɥ":99,"ɨ":101,"ɪ":102,"ʝ":103,"ɯ":110,"ɰ":111,"ŋ":112,"ɳ":113,"ɲ":114,"ɴ":115,"ø":116,"ɸ":118,"θ":119,"œ":120,"ɹ":123,"ɾ":125,"ɻ":126,"ʁ":128,"ɽ":129,"ʂ":130,"ʃ":131,"ʈ":132,"ʧ":133,"ʊ":135,"ʋ":136,"ʌ":138,"ɣ":139,"ɤ":140,"χ":142,"ʎ":143,"ʒ":147,"ʔ":148,"ˈ":156,"ˌ":157,"ː":158,"ʰ":162,"ʲ":164,"↓":169,"→":171,"↗":172,"↘":173,"ᵻ":177};
+const NATURAL = [["af_heart", "Heart", "female"], ["am_michael", "Michael", "male"], ["af_bella", "Bella", "female"], ["am_fenrir", "Fenrir", "male"]];
+const MODEL_BYTES = 92361116;
+function wavURL(arrays, rate) {
+  const pad = (s) => Math.round(rate * s);
+  const total = pad(0.12) + arrays.reduce((t, a) => t + a.length, 0) + pad(0.2) * Math.max(0, arrays.length - 1) + pad(0.3);
+  const pcm = new Int16Array(total); let o = pad(0.12);
+  arrays.forEach((a, k) => { for (let i = 0; i < a.length; i++) pcm[o + i] = Math.max(-1, Math.min(1, a[i])) * 32767; o += a.length + (k < arrays.length - 1 ? pad(0.2) : 0); });
+  const buf = new ArrayBuffer(44 + pcm.byteLength), v = new DataView(buf);
+  const w = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + pcm.byteLength, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, pcm.byteLength, true);
+  new Int16Array(buf, 44).set(pcm);
+  return { url: URL.createObjectURL(new Blob([buf], { type: "audio/wav" })), duration: total / rate };
+}
+const splitForVoice = (text) => {
+  const out = [];
+  for (const sn of (text.match(/[^.!?]+[.!?]+["”')]*\s*|[^.!?]+$/g) || [text]).map((x) => x.trim()).filter(Boolean)) {
+    const last = out[out.length - 1];
+    if (last && (last.length < 40 || sn.length < 25) && last.length + sn.length < 300) out[out.length - 1] = last + " " + sn; else out.push(sn);
+  }
+  return out.length ? out : [text];
+};
+async function download(urls, onPct) {
+  const chunks = []; let got = 0;
+  for (const u of urls) {
+    const r = await fetch(u); if (!r.ok) throw new Error(`download failed (${r.status})`);
+    const reader = r.body.getReader();
+    for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; onPct?.(Math.min(99, Math.round((got / MODEL_BYTES) * 100))); }
+  }
+  const out = new Uint8Array(got); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; } return out;
+}
+const Natural = {
+  // Inside a Claude artifact the page cannot fetch the model, so the natural voice is offered only in the saved copy.
+  supported: typeof Worker !== "undefined" && typeof WebAssembly !== "undefined" && !window.claude,
+  state: "off", ready: null, workers: [], seq: 0, pending: new Map(), clips: new Map(), audio: new Audio(), src: null, stopCurrent: null, onProgress: null, lastMs: 0, unlocked: false,
+  async source() {
+    const abs = (p) => new URL(p, document.baseURI).href;
+    try {
+      const r = await fetch("kokoro/manifest.json", { cache: "no-store" });
+      if (r.ok) { const m = await r.json(); return { ortModule: abs("ort/ort.wasm.min.mjs"), ortBase: abs("ort/"), phonemizer: abs("phonemizer/phonemizer.js"), modelParts: Array.from({ length: m.parts }, (_, i) => abs(`kokoro/kokoro-q8.part${i}.bin`)), voice: (id) => abs(`kokoro/voices/${id}.bin`) }; }
+    } catch { /* not hosted next to this page: use the public copies */ }
+    const ORT = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/", HF = "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/";
+    return { ortModule: ORT + "ort.wasm.min.mjs", ortBase: ORT, phonemizer: "https://cdn.jsdelivr.net/npm/phonemizer@1.2.1/dist/phonemizer.js", modelParts: [HF + "onnx/model_quantized.onnx"], voice: (id) => `${HF}voices/${id}.bin` };
+  },
+  // Downloads the model once, then starts up to two voice workers so sentences and scenes are voiced side by side.
+  load() {
+    if (this.ready) return this.ready;
+    this.state = "loading";
+    this.ready = (async () => {
+      this.src = await this.source();
+      const bytes = await download(this.src.modelParts, (pct) => this.onProgress?.(pct));
+      const url = URL.createObjectURL(new Blob([document.getElementById("kokoro-worker").textContent], { type: "text/javascript" }));
+      const n = (navigator.hardwareConcurrency || 2) >= 4 ? 2 : 1;
+      const slots = Array.from({ length: n }, () => {
+        const slot = { w: new Worker(url, { type: "module" }), load: 0 };
+        slot.w.onmessage = ({ data: m }) => {
+          const p = this.pending.get(m.id); if (!p) return; this.pending.delete(m.id); p.slot.load--;
+          if (m.type === "error") p.reject(new Error(m.message)); else p.resolve(m);
+        };
+        slot.w.onerror = (e) => { for (const [id, p] of this.pending) if (p.slot === slot) { this.pending.delete(id); p.reject(new Error(e.message || "the voice worker stopped")); } };
+        return slot;
+      });
+      const init = { type: "init", ortModule: this.src.ortModule, ortBase: this.src.ortBase, phonemizer: this.src.phonemizer, vocab: KOKORO_VOCAB };
+      const results = await Promise.allSettled(slots.map((slot, k) => { const model = k === n - 1 ? bytes : bytes.slice(); return this.call({ ...init, model }, slot, [model.buffer]); }));
+      this.workers = slots.filter((slot, k) => results[k].status === "fulfilled");
+      slots.forEach((slot, k) => { if (results[k].status !== "fulfilled") slot.w.terminate(); });
+      if (!this.workers.length) throw results[0].reason;
+      this.state = "ready"; applyVoice();
+      if (L && Voice.kind === "natural") prefetchFrom(S.i);
+    })().catch((e) => { this.state = "failed"; this.ready = null; this.workers.forEach((x) => x.w.terminate()); this.workers = []; throw e; });
+    return this.ready;
+  },
+  call(msg, slot, transfer = []) {
+    slot = slot || this.workers.reduce((a, b) => (b.load < a.load ? b : a));
+    const id = ++this.seq; slot.load++;
+    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject, slot }); slot.w.postMessage({ ...msg, id }, transfer); });
+  },
+  clip(text, voiceId, speed) {
+    const key = `${voiceId}|${speed}|${text}`;
+    if (!this.clips.has(key)) {
+      const job = (async () => {
+        await this.load();
+        const done = await Promise.all(splitForVoice(text).map((part) => this.call({ type: "synth", text: part, voice: this.src.voice(voiceId), speed })));
+        this.lastMs = Math.max(...done.map((m) => m.ms));
+        return wavURL(done.map((m) => m.samples), 24000);
+      })();
+      job.catch(() => this.clips.delete(key));
+      this.clips.set(key, job);
+      if (this.clips.size > 60) { const [k, old] = this.clips.entries().next().value; this.clips.delete(k); old.then((c) => URL.revokeObjectURL(c.url)).catch(() => {}); }
+    }
+    return this.clips.get(key);
+  },
+  // Call from a tap: once this audio element has played, iPhones let it play the next clips without another tap.
+  unlock() {
+    if (this.unlocked) return;
+    try { if (!this.silent) this.silent = wavURL([new Float32Array(2400)], 24000).url; this.audio.src = this.silent; this.audio.play()?.then(() => { this.unlocked = true; }).catch(() => {}); } catch { /* ignore */ }
+  },
+  async say(text, speed, voiceId, onChar, onStart) {
+    const clip = await this.clip(text, voiceId, speed);
+    return new Promise((resolve, reject) => {
+      const a = this.audio; this.stopCurrent?.();
+      let raf = 0, done = false;
+      const end = (r, err) => { if (done) return; done = true; cancelAnimationFrame(raf); a.onended = a.onerror = null; this.stopCurrent = null; err ? reject(err) : resolve(r); };
+      this.stopCurrent = () => { a.pause(); end("canceled"); };
+      a.onended = () => end("done");
+      a.onerror = () => end(null, new Error("the audio could not play"));
+      const follow = () => { if (a.duration > 0) onChar?.(Math.floor(clamp(a.currentTime / a.duration) * text.length)); raf = requestAnimationFrame(follow); };
+      a.src = clip.url;
+      const p = a.play();
+      (p || Promise.resolve()).then(() => { if (!done) { onStart?.(); follow(); } }).catch((e) => end(null, e));
+    });
+  },
+};
+window.TeacherAILite = { Natural };
+// Voices the next scenes in the background so the teacher does not pause between them.
+function prefetchFrom(i) {
+  if (!L || Voice.kind !== "natural" || Natural.state !== "ready") return;
+  for (const sc of L.scenes.slice(i, i + 3)) Natural.clip(sc.narration, Voice.naturalVoice, clamp(S.rate * Voice.rateMul, 0.6, 1.3)).catch(() => {});
+}
+
+const Voice = {
+  rateMul: 1, pitch: 1, gen: 0, claude: null, kind: "off", browserVoice: null, onChar: null, onMs: null, started: false, claudeVoice: "buttery", forced: "", cancelledAt: 0, utter: null,
+  async init() {
+    this.claude = await cap("tts");
+    if (this.claude) {
+      try { this.claude.onPosition?.(({ ms }) => { this.started = true; this.onMs && this.onMs(ms); }); } catch { /* optional */ }
+      try { this.claude.onState?.(({ state }) => { if (state === "speaking") this.started = true; }); } catch { /* optional */ }
+    }
+    $("#cvNote").textContent = this.claude ? "Claude's voices are on. LAW and MONKEY use them." : window.claude ? "Claude's voices are not offered in this view. Claude does not pass them to pages in Safari or the Claude phone apps. Open this page in Claude in a computer browser or the desktop app, or try Chrome, to use them." : "";
+    fillVoiceSelect();
+  },
+  cancel() {
+    this.gen++;
+    try { Natural.stopCurrent?.(); } catch { /* ignore */ }
+    try { this.claude?.stop?.(); } catch { /* ignore */ }
+    try {
+      const syn = window.speechSynthesis;
+      if (syn) { if (syn.speaking || syn.pending || syn.paused) { syn.cancel(); this.cancelledAt = performance.now(); } syn.resume(); }
+    } catch { /* ignore */ }
+  },
+  // Names the voice on the line itself (Claude's documented way to choose a voice), and falls back to the plain call.
+  async speakClaude(text, rate) {
+    const voice = this.claudeVoice || "buttery", gen = this.gen;
+    this.spokenWith = voice;
+    try { await this.claude.speak([{ text, voice, rate, language: "en" }]); return "done"; }
+    catch (e) {
+      if (this.gen !== gen || ["not_granted", "busy", "rate_limited"].includes(e?.code)) throw e;
+      await this.claude.speak(text, { voice, rate, language: "en" }); return "done";
+    }
+  },
+  pause() { try { if (this.kind === "natural") Natural.audio.pause(); else if (this.kind === "claude") this.claude.pause?.(); else window.speechSynthesis?.pause(); } catch { /* ignore */ } },
+  resume() { try { if (this.kind === "natural") Natural.audio.play()?.catch(() => {}); else if (this.kind === "claude") this.claude.resume?.(); else window.speechSynthesis?.resume(); } catch { /* ignore */ } },
+  speak(text, rate, { onChar, onMs, onStart } = {}) {
+    this.onChar = onChar || null; this.onMs = onMs || null; this.started = false;
+    if (this.kind === "natural") return Natural.say(text, clamp(rate * this.rateMul, 0.6, 1.3), this.naturalVoice, (ch) => { this.started = true; this.onChar && this.onChar(ch); }, () => { this.started = true; onStart?.(); });
+    if (this.kind === "claude" && this.claude) return this.speakClaude(text, clamp(rate * this.rateMul, 0.7, 1.5));
+    if (this.kind === "browser" && "speechSynthesis" in window) {
+      const gen = this.gen, parts = splitForVoice(text), offs = []; let at = 0;
+      for (const p of parts) { const k = text.indexOf(p, at); offs.push(k < 0 ? at : k); at = (k < 0 ? at : k) + p.length; }
+      const one = (p, off) => new Promise((resolve, reject) => {
+        const u = new SpeechSynthesisUtterance(p);
+        u.lang = this.browserVoice?.lang || "en-US"; try { if (this.browserVoice) u.voice = this.browserVoice; } catch { /* keep the default voice */ }
+        u.rate = clamp(rate * this.rateMul, 0.9, 1.2); u.pitch = 1; // built-in voices sound most human at their own pitch and near normal speed u.volume = 1;
+        u.onstart = () => { this.started = true; };
+        u.onboundary = (e) => { this.started = true; if (this.onChar && (e.name === "word" || e.name === undefined)) this.onChar(off + e.charIndex); };
+        u.onend = () => resolve("done");
+        u.onerror = (e) => (e.error === "canceled" || e.error === "interrupted" ? resolve("canceled") : reject(Object.assign(new Error(e.error || "voice error"), { voice: true })));
+        this.utter = u; // keep a reference: browsers can drop a speaking utterance that gets garbage-collected
+        const run = () => { try { window.speechSynthesis.speak(u); } catch (err) { reject(err); } };
+        if (performance.now() - this.cancelledAt < 200) setTimeout(run, 90); else run();
+      });
+      return (async () => {
+        for (let k = 0; k < parts.length; k++) {
+          if (this.gen !== gen) return "canceled";
+          if ((await one(parts[k], offs[k])) === "canceled" || this.gen !== gen) return "canceled";
+          if (k < parts.length - 1) await new Promise((r) => setTimeout(r, 280)); // a short pause between sentences, like a teacher
+        }
+        return "done";
+      })();
+    }
+    return Promise.reject(new Error("no voice"));
+  },
+};
+// Ranks device voices: Premium / Enhanced / Natural voices sound human; novelty and "compact" voices sound robotic.
+function voiceScore(v) {
+  const n = v.name; let s = 0;
+  if (/premium/i.test(n)) s += 50; else if (/natural|neural/i.test(n)) s += 45; else if (/enhanced/i.test(n)) s += 40; else if (/^google/i.test(n)) s += 25;
+  if (/^en[-_]US/i.test(v.lang)) s += 6; else if (/^en[-_]GB/i.test(v.lang)) s += 5; else if (/^en/i.test(v.lang)) s += 3;
+  if (/samantha|ava|zoe|allison|evan|nathan|aria|jenny|guy|sonia|libby|ryan|serena|daniel/i.test(n)) s += 4;
+  if (/compact|eloquence|albert|bad news|bahh|bells|boing|bubbles|cellos|wobble|whisper|zarvox|trinoids|organ|junior|ralph|fred|kathy|good news|jester|superstar|grandma|grandpa|rocko|shelley|flo|eddy|reed|sandy/i.test(n)) s -= 30;
+  return s;
+}
+const voiceNote = (msg, bad) => { const el = $("#voiceNote"); el.textContent = msg; el.classList.toggle("err", !!bad); };
+// Two named teacher voices. Each uses the best engine this view has: Claude's voices, the natural
+// Kokoro voices (saved copy), or this device's voices, with its own pace and pitch.
+const CHARACTERS = {
+  law: { label: "LAW · calm, deep, measured", claude: "rounded", natural: "am_michael", rate: 0.97, pitch: 1, male: true },
+  monkey: { label: "MONKEY · bright, playful, upbeat", claude: "airy", natural: "af_heart", rate: 1.05, pitch: 1, male: false },
+};
+const MALE = /daniel|evan|nathan|aaron|alex|tom|guy|ryan|arthur|rishi|oliver|fred|male|david|mark|james|george/i;
+function bestDeviceVoice(male) {
+  let list = [];
+  try { list = (window.speechSynthesis?.getVoices() || []).filter((v) => /^en/i.test(v.lang)); } catch { /* ignore */ }
+  const score = (v) => voiceScore(v) + (MALE.test(v.name) === male ? 8 : 0);
+  return list.sort((a, b) => score(b) - score(a))[0] || null;
+}
+function fillVoiceSelect() {
+  const sel = $("#voice"); const want = Voice.forced || store.get("voice", "");
+  const opts = [];
+  for (const [id, c] of Object.entries(CHARACTERS)) opts.push({ id: "char:" + id, label: c.label });
+  for (const v of ["rounded", "airy", "buttery", "glassy"]) opts.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice${Voice.claude ? "" : " (not offered in this view)"}`, disabled: !Voice.claude });
+  if (Natural.supported) for (const [id, name, g] of NATURAL) opts.push({ id: "natural:" + id, label: `${name} · natural ${g} voice` });
+  let list = [];
+  try { list = (window.speechSynthesis?.getVoices() || []).filter((v) => /^en/i.test(v.lang)); } catch { /* ignore */ }
+  list.sort((a, b) => voiceScore(b) - voiceScore(a));
+  for (const v of list) opts.push({ id: "browser:" + v.voiceURI, label: `${v.name} (${v.lang})${voiceScore(v) >= 40 ? " · high quality" : ""}` });
+  if ("speechSynthesis" in window) opts.push({ id: "browser:default", label: "This device's voice" });
+  opts.push({ id: "off", label: "Captions only (no sound)" });
+  sel.innerHTML = opts.map((o) => `<option value="${esc(o.id)}"${o.disabled ? " disabled" : ""}>${esc(o.label)}</option>`).join("");
+  sel.value = opts.some((o) => o.id === want && !o.disabled) ? want : opts[0].id;
+  applyVoice();
+}
+function applyVoice() {
+  const id = $("#voice").value;
+  Voice.kind = "off"; Voice.browserVoice = null; Voice.rateMul = 1; Voice.pitch = 1;
+  const ch = id.startsWith("char:") ? CHARACTERS[id.slice(5)] : null;
+  if (ch) {
+    Voice.rateMul = ch.rate; Voice.pitch = ch.pitch;
+    if (Voice.claude) { Voice.kind = "claude"; Voice.claudeVoice = ch.claude; }
+    else if (Natural.supported) { Voice.kind = "natural"; Voice.naturalVoice = ch.natural; }
+    else if ("speechSynthesis" in window) { Voice.kind = "browser"; Voice.browserVoice = bestDeviceVoice(ch.male); }
+    voiceNote(`${ch.label.split(" ·")[0]} uses ${Voice.kind === "claude" ? `Claude's ${ch.claude} voice` : Voice.kind === "natural" ? "a natural voice that runs on your device (about 95 MB the first time)" : Voice.browserVoice ? `your device's ${Voice.browserVoice.name} voice` : "your device's voice"}.${Voice.kind === "browser" && (!Voice.browserVoice || voiceScore(Voice.browserVoice) < 40) ? " For a nicer sound on iPhone, download Ava or Evan (Premium) in Settings, Accessibility, Spoken Content, Voices." : ""}`, false);
+    return;
+  }
+  if (id.startsWith("claude:") && Voice.claude) { Voice.kind = "claude"; Voice.claudeVoice = id.slice(7); }
+  else if (id.startsWith("natural:") && Natural.supported) { Voice.kind = "natural"; Voice.naturalVoice = id.slice(8); }
+  else if (id.startsWith("browser:")) {
+    const uri = id.slice(8);
+    if (uri !== "default") { try { Voice.browserVoice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === uri) || null; } catch { /* ignore */ } }
+    Voice.kind = "browser";
+  }
+  if (Voice.kind === "natural") { voiceNote(Natural.state === "ready" ? "Natural voice ready. It runs on your device." : "Natural voice: about 95 MB downloads the first time it speaks, then it runs on your device for free.", false); return; }
+  if (Voice.kind === "browser" && (!Voice.browserVoice || voiceScore(Voice.browserVoice) < 40)) {
+    voiceNote("Tip: this voice can sound robotic. On iPhone, get a free natural voice: Settings, Accessibility, Spoken Content, Voices, English, then download Ava or Zoe (Premium) and reopen this page. On a Windows PC, open the page in Microsoft Edge for its natural voices.", false);
+    return;
+  }
+  voiceNote(Voice.kind === "off" ? ("speechSynthesis" in window || Voice.claude ? "Captions only. Pick a voice to hear the teacher." : "This device offers no voice here, so you get captions only.") : "Tap Test voice to check your sound.", false);
+}
+async function testVoice() {
+  if (S.playing) pause();
+  Voice.cancel(); applyVoice();
+  if (Voice.kind === "off") return;
+  const my = ++testToken; voiceNote("Playing a short test. Turn your volume up.", false);
+  if (Voice.kind === "natural") {
+    Natural.unlock(); Natural.onProgress = (pct) => voiceNote(`Downloading the natural voice: ${pct}% (only the first time).`, false);
+    if (Natural.state !== "ready") voiceNote("Getting the natural voice ready…", false);
+    try { await Voice.speak("Hello! I am your teacher. Can you hear me clearly?", S.rate); if (my === testToken) voiceNote("If you heard that, the natural voice works.", false); }
+    catch (e) { voiceNote(`The natural voice could not start here (${e.message}). Pick another voice.`, true); }
+    return;
+  }
+  const timer = setTimeout(() => { if (my === testToken && !Voice.started) { Voice.cancel(); voiceNote("No sound started. Turn the volume up, switch the ringer on, or pick another voice.", true); } }, 3500);
+  try { await Voice.speak(Voice.kind === "claude" ? `Hello! I am your teacher, speaking with Claude's ${Voice.claudeVoice} voice. Can you hear me?` : "Hello! I am your teacher. Can you hear me?", S.rate); clearTimeout(timer); if (my === testToken && Voice.started) voiceNote("If you heard that, the voice works.", false); }
+  catch { clearTimeout(timer); voiceNote("That voice could not play here. Pick another one.", true); }
+}
+let testToken = 0;
+
+/* =====================================================================
+   Player
+   ===================================================================== */
+const stage = $("#stage"), world = $("#world"), titleEl = $("#title"), ulEl = $("#ul"), iconSvg = $("#icon"), kwEl = $("#kw"), capEl = $("#cap");
+const beatEl = $("#beat"), sectEl = $("#sect"), countEl = $("#count"), segsEl = $("#segs"), mouthEl = $("#mouth"), bobEl = $("#bob");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let L = null;          // { title, scenes, source, style:{theme,accent}, notes }
+let A = null;          // analysis of L.source (for raise-hand answers)
+const S = { waitVoice: false, i: 0, t: 0, playing: false, idle: true, ended: false, token: 0, speechMode: false, speechDone: false, doneT: null, speechStarted: false, boundaryIdx: -1, rate: 1, dirty: true };
+let RT = null;         // runtime pieces of the current scene's drawing
+let capKey = "";
+
+const cur = () => L.scenes[S.i];
+function prep(sc) {
+  if (sc._n === sc.narration) return sc;
+  sc._n = sc.narration; sc.words = wordsOf(sc.narration); sc.starts = []; let pos = 0;
+  for (const w of sc.words) { const at = sc.narration.indexOf(w, pos); sc.starts.push(at); pos = at + w.length; }
+  return sc;
+}
+const CPS = () => 14.5 * S.rate;
+const estSec = (sc) => sc.narration.length / CPS() + 1;
+// Seconds until the board has finished writing its words (board animations run at 0.55 x speed).
+const boardDone = (sc) => (3.0 + 0.8 * Math.max(0, Math.min(3, sc.board.length - 1) - 1) + 0.7) / (0.55 * S.rate);
+const silentDur = (sc) => Math.max(boardDone(sc) + 1.5, estSec(sc) + 3);
+const idxAtChar = (sc, ch) => { let k = 0; for (let j = 0; j < sc.starts.length; j++) if (sc.starts[j] <= ch) k = j; return k; };
+
+function applyStyle() {
+  const st = L.style; stage.dataset.theme = st.theme;
+  stage.style.setProperty("--s-accent", st.accent); stage.style.setProperty("--s-on", onColor(st.accent));
+}
+
+function buildScene() {
+  const sc = prep(cur());
+  beatEl.textContent = BEATS[sc.beat] || "Lesson"; sectEl.textContent = sc.section || ""; countEl.textContent = `${S.i + 1} / ${L.scenes.length}`;
+  const head = sc.board[0] || ""; titleEl.textContent = head;
+  titleEl.style.fontSize = clamp(15 - Math.max(0, head.length - 9) * 0.55, 7.5, 15) + "cqw";
+  kwEl.innerHTML = sc.board.slice(1, 4).map((w) => `<li><svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13 L9 19 L21 5" pathLength="1"/></svg><span class="kwt">${esc(w)}</span></li>`).join("");
+  iconSvg.innerHTML = (ICONS[sc.icon] || ICONS.star).map((d) => `<path class="d" d="${d}" pathLength="1"/>`).join("") + `<g class="pen" id="pen"><line x1="0" y1="0" x2="16" y2="-26"/><circle cx="0" cy="0" r="2.6"/></g>`;
+  const paths = [...iconSvg.querySelectorAll("path.d")];
+  const lens = paths.map((p) => p.getTotalLength()); const total = lens.reduce((a, b) => a + b, 0) || 1;
+  RT = { paths, lens, total, pen: $("#pen"), kws: [...kwEl.children] };
+  capKey = "";
+  [...segsEl.children].forEach((b, k) => { b.classList.toggle("done", k < S.i); b.style.setProperty("--p", k === S.i ? 0 : k < S.i ? 1 : 0); b.setAttribute("aria-current", k === S.i ? "true" : "false"); });
+  document.querySelectorAll(".sc").forEach((li) => li.classList.toggle("now", +li.dataset.i === S.i));
+  S.dirty = true;
+}
+
+function paint() {
+  if (!L || !RT) return;
+  const sc = cur(); const vt = S.idle ? 99 : S.t * 0.55 * S.rate;   // board animations run at half speed
+  titleEl.style.setProperty("--p", ease(clamp((vt - 0.15) / 0.9)));
+  ulEl.style.strokeDashoffset = 1 - ease(clamp((vt - 0.9) / 0.6));
+  const p = ease(clamp((vt - 0.9) / 2.4)); const target = p * RT.total; let acc = 0, pt = null;
+  RT.paths.forEach((el, k) => {
+    const local = clamp((target - acc) / RT.lens[k]); el.style.strokeDashoffset = 1 - local;
+    if (target > acc && target < acc + RT.lens[k]) pt = el.getPointAtLength(local * RT.lens[k]);
+    acc += RT.lens[k];
+  });
+  if (pt) { RT.pen.setAttribute("transform", `translate(${pt.x} ${pt.y})`); RT.pen.style.opacity = 1; } else RT.pen.style.opacity = 0;
+  RT.kws.forEach((li, k) => li.style.setProperty("--p", ease(clamp((vt - (3.0 + 0.8 * k)) / 0.7))));
+  if (!reduced) {
+    const f = clamp(S.idle ? 0 : S.t / Math.max(6, silentDur(sc)));
+    const zoom = S.i % 2 ? 1.05 - 0.05 * f : 1 + 0.05 * f;
+    world.style.transform = `scale(${zoom}) translate(${(S.i % 2 ? 1 : -1) * f * 1.2}cqw, 0)`;
+  }
+  // captions
+  let w = -1;
+  if (!S.idle) {
+    if (S.speechDone) w = sc.words.length - 1;
+    else if (S.speechMode && S.boundaryIdx >= 0) w = Math.min(S.boundaryIdx, sc.words.length - 1);
+    else w = Math.min(idxAtChar(sc, S.t * CPS()), sc.words.length - 1);
+    if (S.t < 0.3) w = S.speechMode ? -1 : 0;
+  }
+  const chunk = Math.floor(Math.max(w, 0) / 5); const key = S.i + ":" + chunk + ":" + sc._n;
+  if (key !== capKey) { capKey = key; capEl.innerHTML = sc.words.slice(chunk * 5, chunk * 5 + 5).map((x, j) => `<span class="w" data-k="${chunk * 5 + j}">${esc(x)}</span>`).join(""); }
+  for (const el of capEl.children) { const k = +el.dataset.k; el.classList.toggle("on", k === w); el.classList.toggle("done", k < w); }
+  const seg = segsEl.children[S.i]; if (seg) seg.style.setProperty("--p", S.idle ? 0 : clamp(S.t / (S.speechMode ? estSec(sc) : silentDur(sc))));
+  // teacher
+  const wt = $("#waitTag"); const waiting = S.playing && S.waitVoice; if (wt.hidden === waiting) wt.hidden = !waiting;
+  const talking = S.playing && !S.idle && !S.speechDone && !S.waitVoice && (S.t > 0.2);
+  mouthEl.style.transform = `scaleY(${talking ? 0.5 + 0.9 * Math.abs(Math.sin(S.t * 11)) : 0.5})`;
+  if (!reduced) bobEl.style.transform = talking ? `translateY(${Math.sin(S.t * 3) * 0.8}px)` : "none";
+}
+
+async function startScene() {
+  const my = ++S.token; Voice.cancel();
+  S.speechStarted = true; S.speechDone = false; S.doneT = null; S.boundaryIdx = -1;
+  if (Voice.kind === "off") { S.speechMode = false; return; }
+  const sc = prep(cur()); S.speechMode = true;
+  if (Voice.kind === "natural") {
+    S.waitVoice = true;
+    if (Natural.state !== "ready") Natural.onProgress = (pct) => { if (my === S.token) say(`Downloading the natural voice: ${pct}% (about 95 MB, only the first time).`); };
+  } else setTimeout(() => { if (my === S.token && S.playing && S.speechMode && !S.speechDone && !Voice.started) voiceStalled(); }, 3500);
+  const pre = Voice.kind === "natural";
+  try {
+    const speaking = Voice.speak(sc.narration, S.rate, {
+      onStart: () => { if (my === S.token) { if (S.waitVoice && Natural.state === "ready" && /Downloading the natural voice/.test($("#status").textContent)) say("Natural voice ready."); S.waitVoice = false; } },
+      onChar: (ch) => { if (my === S.token) S.boundaryIdx = idxAtChar(sc, ch); },
+      onMs: (ms) => { if (my === S.token) S.boundaryIdx = idxAtChar(sc, (ms / 1000) * CPS()); },
+    });
+    if (pre) prefetchFrom(S.i + 1);
+    const r = await speaking;
+    if (my === S.token && r !== "canceled") S.speechDone = true;
+  } catch (err) {
+    if (my === S.token) { S.waitVoice = false; voiceStalled(err); }
+  }
+}
+// The voice did not start (muted device, blocked audio, no voice installed): try the device voice once, else continue with captions.
+function voiceStalled(err) {
+  const was = Voice.kind; Voice.cancel(); S.token++; S.waitVoice = false;
+  const device = [...$("#voice").options].find((o) => o.value.startsWith("browser:"));
+  if ((was === "claude" || was === "natural") && device) {
+    Voice.forced = device.value; $("#voice").value = device.value; applyVoice();
+    say(was === "natural" ? `The natural voice could not start here${err?.message ? ` (${err.message})` : ""}, so I switched to your device's voice.` : "Claude's voice did not start here, so I switched to your device's voice.", "");
+    startScene(); return;
+  }
+  S.speechMode = false; Voice.forced = "off"; $("#voice").value = "off"; applyVoice();
+  voiceNote("No sound started. Turn the volume up and the ringer on, then pick a voice and tap Test voice.", true);
+  say("I could not get sound from the voice on this device. The lesson continues with captions.", "err");
+}
+
+function go(i, fromAuto) {
+  i = clamp(i, 0, L.scenes.length - 1);
+  S.token++; Voice.cancel();
+  S.waitVoice = false; S.i = i; S.t = 0; S.doneT = null; S.speechDone = false; S.speechStarted = false; S.speechMode = false; S.ended = false; S.boundaryIdx = -1;
+  S.idle = !S.playing;
+  buildScene();
+  if (S.playing) startScene();
+  if (!fromAuto) setPlayIcon();
+}
+function next(auto) { if (S.i < L.scenes.length - 1) go(S.i + 1, auto); else finish(); }
+function finish() { S.playing = false; S.ended = true; S.idle = false; S.speechDone = true; Voice.cancel(); setPlayIcon(); S.dirty = true; }
+function play() {
+  if (!L) return;
+  if (Voice.kind === "natural") Natural.unlock();
+  if (S.ended) { S.ended = false; S.playing = true; go(0); setPlayIcon(); return; }
+  S.playing = true;
+  if (S.idle) { S.t = 0; S.idle = false; }
+  if (!S.speechStarted) startScene(); else Voice.resume();
+  setPlayIcon();
+}
+function pause() { S.playing = false; Voice.pause(); setPlayIcon(); S.dirty = true; }
+function setPlayIcon() {
+  const b = $("#play");
+  $("#playIcon").innerHTML = S.playing ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : S.ended ? '<path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  b.setAttribute("aria-label", S.playing ? "Pause" : S.ended ? "Replay" : "Play");
+}
+function tick() {
+  const sc = cur();
+  if (S.speechMode) {
+    if (S.speechDone) { if (S.doneT == null) S.doneT = S.t; if (S.t - S.doneT > 1.4 && S.t >= boardDone(sc) + 0.8) next(true); }
+    else if (S.t > estSec(sc) * 2.2 + 6) S.speechDone = true;
+  } else if (S.t >= silentDur(sc)) next(true);
+}
+let last = performance.now();
+function frame(ts) {
+  const dt = Math.min(0.1, (ts - last) / 1000); last = ts;
+  if (L) { if (S.playing && !S.waitVoice) { S.t += dt; tick(); } if (S.playing) S.dirty = true; if (S.dirty) { paint(); S.dirty = S.playing; } }
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   Building, editing, saving
+   ===================================================================== */
+function say(msg, kind = "") { const el = $("#status"); el.textContent = msg; el.className = "status " + kind; }
+
+function loadLesson(lesson) {
+  Voice.cancel(); S.token++; S.playing = false; S.ended = false;
+  L = lesson; A = analyse(L.source || "", L.title);
+  applyStyle();
+  segsEl.innerHTML = L.scenes.map((_, k) => `<button type="button" class="seg" data-i="${k}" aria-label="Go to scene ${k + 1}"></button>`).join("");
+  renderScript();
+  S.i = 0; S.t = 0; S.idle = true; S.speechStarted = false; S.speechMode = false;
+  buildScene(); setPlayIcon(); prefetchFrom(0);
+  $("#scriptH").textContent = `Lesson script · ${L.scenes.length} scenes`;
+}
+
+function renderScript() {
+  $("#scenes").innerHTML = L.scenes.map((sc, i) => `
+    <li class="sc" data-i="${i}">
+      <div class="sc-h"><button type="button" class="jump" data-i="${i}" aria-label="Show scene ${i + 1}">${i + 1}</button><span class="chip">${BEATS[sc.beat] || "Lesson"}</span></div>
+      <label>What the teacher says<textarea data-f="narration" rows="3">${esc(sc.narration)}</textarea></label>
+      <label>Words on the board (first one is the heading)<input type="text" data-f="board" value="${esc(sc.board.join(", "))}"></label>
+    </li>`).join("");
+  document.querySelectorAll(".sc").forEach((li) => li.classList.toggle("now", +li.dataset.i === S.i));
+}
+
+function readHTML(text) {
+  try {
+    const doc = new DOMParser().parseFromString(text, "text/html");
+    doc.querySelectorAll("script,style,nav,footer,aside").forEach((n) => n.remove());
+    return [...doc.querySelectorAll("h1,h2,h3,p,li")].map((n) => (/^H/.test(n.tagName) ? `== ${n.textContent.trim()} ==` : n.textContent.trim())).filter(Boolean).join("\n\n");
+  } catch { return text; }
+}
+
+/* ---------- AI (Claude inside this page, or your own key in the saved copy) ---------- */
+const AI = { sample: null, ready: null, by: "" };
+AI.ready = cap("sample").then((x) => { AI.sample = x; updateAiNote(); });
+const keyCfg = () => ({ provider: "anthropic", key: "", model: "", base: "", ...store.get("ai", {}) });
+const keyUsable = () => !window.claude && !!keyCfg().key.trim() && (keyCfg().provider !== "custom" || !!keyCfg().base.trim());
+const aiAvailable = () => !!AI.sample || keyUsable();
+function updateAiNote() {
+  const k = keyCfg(); const el = $("#aiNote");
+  el.textContent = AI.sample ? "AI: Claude writes your lessons (it uses your own Claude usage)." : keyUsable() ? `AI: your ${k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : "own"} key writes your lessons.` : "AI is not available in this view, so lessons use the built-in engine and need pasted notes.";
+}
+const SAMPLE_MSG = { not_granted: "You did not allow this page to use Claude.", sampling_disabled: "Claude is not available on this account.", rate_limited: "Claude's usage limit was reached. Try again later.", refused: "Claude declined that request.", invalid_json: "Claude's answer was not in the right format.", empty_completion: "Claude sent back nothing.", upstream_error: "Claude had a connection problem.", prompt_too_large: "That text is too long for the AI." };
+const errMsg = (e) => SAMPLE_MSG[e?.code] || e?.message || "The AI did not answer.";
+function parseLoose(t) {
+  t = String(t).trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  return JSON.parse(a >= 0 && b > a ? t.slice(a, b + 1) : t);
+}
+async function keyChat(k, prompt, signal) {
+  let url, headers = { "content-type": "application/json" }, body;
+  if (k.provider === "anthropic") {
+    url = "https://api.anthropic.com/v1/messages";
+    Object.assign(headers, { "x-api-key": k.key.trim(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" });
+    body = { model: k.model.trim() || "claude-sonnet-5-5", max_tokens: 12000, messages: [{ role: "user", content: prompt }] };
+  } else {
+    url = (k.provider === "xai" ? "https://api.x.ai/v1" : k.base.trim().replace(/\/$/, "")) + "/chat/completions";
+    headers.authorization = "Bearer " + k.key.trim();
+    body = { model: k.model.trim() || (k.provider === "xai" ? "grok-4" : ""), max_tokens: 12000, messages: [{ role: "user", content: prompt }] };
+  }
+  const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal });
+  if (!r.ok) throw new Error(`The AI service answered ${r.status}. Check the key and model.`);
+  const d = await r.json();
+  return k.provider === "anthropic" ? (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("") : d.choices?.[0]?.message?.content || "";
+}
+// Tries Claude (this page's own access), then your key; the caller falls back to the built-in engine.
+async function aiCall(prompt, { json, tier, onText, signal, cache } = {}) {
+  await AI.ready;
+  const errs = [];
+  if (AI.sample) {
+    try {
+      const opts = { modelTier: tier || "default", signal, ...(onText ? { onText } : {}), ...(cache === false ? { cache: false } : {}) };
+      AI.by = "Claude";
+      return json ? await AI.sample.json(prompt, opts) : (await AI.sample(prompt, opts)).text.trim();
+    } catch (e) { if (e?.code === "cancelled") throw e; errs.push(errMsg(e)); }
+  }
+  if (keyUsable()) {
+    try { const k = keyCfg(); AI.by = k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : "your AI"; const t = await keyChat(k, prompt, signal); return json ? parseLoose(t) : t.trim(); }
+    catch (e) { if (e?.name === "AbortError") throw Object.assign(e, { code: "cancelled" }); errs.push(e.message || "Your AI key did not work."); }
+  }
+  throw new Error(errs.join(" ") || "AI is not available in this view.");
+}
+
+const ICON_LIST = Object.keys(ICONS).join(", ");
+function lessonPrompt({ input, topicMode, seconds, how, n, hasCheck }) {
+  const style = { simple: "Explain for a complete beginner: everyday words, one idea per scene, short sentences, a concrete picture in the mind.", balanced: "Explain clearly for a curious adult: accurate, with one example or analogy.", exam: "Explain for exam revision: precise definitions, key facts and terms, how they connect, and a common mistake to avoid." }[how];
+  return `You write a narrated whiteboard lesson that a teacher reads aloud, slowly and clearly, over a vertical video.
+${style}
+${topicMode ? `Teach this topic from your own knowledge. Be accurate. Do not invent facts, names or numbers; leave out anything you are unsure of.\nTopic: ${input}` : `Teach ONLY from the material below. Do not add facts that are not in it.\nMaterial:\n"""\n${input.slice(0, 60000)}\n"""`}
+
+Reply with ONLY this JSON, no markdown fences:
+{"title": string, "scenes": [{"beat": "hook"|"core"|"example"|"analogy"|"check"|"recap", "narration": string, "board": [string, string, string], "icon": string}]}
+
+Rules:
+- Exactly ${n} scenes. The first is "hook": a question or surprising fact that makes the learner curious. The last is "recap". ${hasCheck ? 'Include one "check" scene just before the recap that asks the learner a question to think about. ' : ""}All the others are "core", "example" or "analogy" scenes in a logical order.
+- "narration" is spoken aloud: 1 or 2 short sentences, 14 to 26 words, plain spoken English, one idea per scene. No lists, markdown, emoji, symbols or text in brackets.
+- "board" is what is written on the board: 3 items. The first is a heading of at most 3 words. The other two are key terms of at most 2 words each.
+- "icon" is the picture drawn for the scene, one of: ${ICON_LIST}.
+- "title" is at most 4 words.
+The whole lesson should last about ${seconds} seconds when read slowly.`;
+}
+async function aiLesson({ input, topicMode, seconds, how, style, signal }) {
+  const n = clamp(Math.round(seconds / 13), 4, 46), hasCheck = seconds >= 60;
+  const data = await aiCall(lessonPrompt({ input, topicMode, seconds, how, n, hasCheck }), {
+    json: true, tier: "default", signal,
+    onText: ({ text }) => say(`Writing your lesson… ${Math.min(n, (text.match(/"narration"/g) || []).length)} of ${n} scenes.`),
+  });
+  const scenes = (Array.isArray(data?.scenes) ? data.scenes : []).map((s, k) => {
+    const narration = String(s?.narration || "").replace(/\s+/g, " ").trim();
+    if (wordsOf(narration).length < 3) return null;
+    let board = (Array.isArray(s?.board) ? s.board : []).map((x) => String(x).trim().slice(0, 26)).filter(Boolean).slice(0, 4);
+    if (!board.length) board = [String(data.title || "Lesson")];
+    return { beat: BEATS[s?.beat] ? s.beat : "core", section: "", narration, board, icon: ICONS[s?.icon] ? s.icon : pickIcon(board.map((x) => stem(x.toLowerCase())), k) };
+  }).filter(Boolean);
+  if (scenes.length < 3) throw new Error("The AI's lesson came back incomplete.");
+  const title = String(data.title || "").trim().slice(0, 60) || scenes[0].board[0];
+  return { title, scenes, source: topicMode ? scenes.map((x) => x.narration).join("\n\n") : input, style, notes: [], by: AI.by };
+}
+
+let abortCtl = null;
+async function make(e) {
+  e?.preventDefault();
+  const input = $("#src").value.trim();
+  if (!input) { say("Type a topic or paste some notes first.", "err"); return; }
+  const seconds = +$("#len").value, how = $("#how").value;
+  const topicMode = wordsOf(input).length < 40;
+  const style = styleFrom($("#theme").value, $("#styleDesc").value);
+  const btn = $("#make"), stop = $("#stop"); btn.disabled = true;
+  abortCtl = new AbortController();
+  try {
+    await AI.ready;
+    let lesson = null, why = "";
+    if (aiAvailable()) {
+      stop.hidden = false; say("Asking AI to write your lesson. The first time, Claude asks you to allow it. This can take up to a minute.");
+      try { lesson = await aiLesson({ input, topicMode, seconds, how, style, signal: abortCtl.signal }); }
+      catch (err) { if (err?.code === "cancelled" || err?.name === "AbortError") { say("Stopped."); return; } why = errMsg(err); }
+    } else why = "AI is not available in this view.";
+    if (!lesson) {
+      if (topicMode) throw new Error(`${why} A topic alone needs AI. Paste your notes (a few sentences) and I will build the lesson with the built-in engine.`);
+      say("Building your lesson with the built-in engine…");
+      const out = plan(analyse(input, ""), { seconds, how });
+      lesson = { title: out.title, scenes: out.scenes, source: input, style, notes: [`${why} I used the built-in engine instead.`, ...out.notes] };
+    }
+    loadLesson(lesson);
+    store.set("opts", { len: $("#len").value, how, theme: $("#theme").value });
+    say(lesson.by ? `Made ${lesson.scenes.length} scenes with ${lesson.by}. Press play.` : `Made ${lesson.scenes.length} scenes. ${lesson.notes.join(" ")}`, lesson.by ? "ok" : "");
+  } catch (err) { say(err.message || "Something went wrong.", "err"); }
+  finally { btn.disabled = false; stop.hidden = true; abortCtl = null; }
+}
+
+async function saveFile(filename, data) {
+  const dl = await cap("downloads");
+  if (dl) {
+    try { await dl.save({ filename, data }); say(`Saved ${filename}.`, "ok"); }
+    catch (e) { if (e?.code !== "declined") say("Saving was blocked here. Use Copy script instead.", "err"); }
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([data], { type: "application/octet-stream" }));
+  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000); say(`Saved ${filename}.`, "ok");
+}
+const slug = () => (L?.title || "lesson").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lesson";
+const scriptText = () => L.scenes.map((s, i) => `${i + 1}. ${s.narration}`).join("\n\n");
+function notesText() {
+  return `# ${L.title}\n\n` + L.scenes.map((s, i) => `## ${i + 1}. ${BEATS[s.beat] || "Lesson"}: ${s.board[0] || ""}\n\n${s.narration}\n\n` + (s.board.length > 1 ? `Key words: ${s.board.slice(1).join(", ")}\n` : "")).join("\n");
+}
+
+/* ---------- raise your hand ---------- */
+let handWasPlaying = false, dictation = null, recog = null;
+function openHand() {
+  if (!L) return;
+  handWasPlaying = S.playing; if (S.playing) pause();
+  $("#hand").hidden = false; $("#handBtn").setAttribute("aria-expanded", "true"); $("#askIn").focus();
+}
+function closeHand() {
+  Voice.cancel(); $("#hand").hidden = true; $("#handBtn").setAttribute("aria-expanded", "false");
+  if (handWasPlaying) { S.speechStarted = false; play(); }
+}
+function answerPrompt(q) {
+  const said = L.scenes.map((x) => x.narration).join(" ").slice(0, 12000);
+  const notes = L.source && !L.source.startsWith(L.scenes[0].narration) ? L.source.slice(0, 30000) : "";
+  return `You are the teacher in a whiteboard lesson called "${L.title}". A student raised their hand.
+What you said in the lesson: ${said}
+${notes ? `The study material the lesson is based on:\n"""\n${notes}\n"""\n` : ""}Student's question: ${q}
+Answer in 2 to 4 short spoken sentences, in plain English, with no markdown or lists. ${notes ? "Use only the lesson and the material above; if it is not covered, say so and give the closest related point." : "Be accurate, and say so if you are not sure."}`;
+}
+async function ask(e) {
+  e.preventDefault(); const q = $("#askIn").value.trim(); if (!q || !L) return;
+  const out = $("#answer"); out.hidden = false; Voice.cancel(); if (Voice.kind === "natural") Natural.unlock();
+  let text = "", label = "";
+  if (aiAvailable()) {
+    out.innerHTML = "<b>Teacher</b><br>Thinking…";
+    try { text = await aiCall(answerPrompt(q), { json: false, tier: "quick", cache: false, onText: ({ text: t }) => { out.innerHTML = `<b>Teacher (AI)</b><br>${esc(t)}`; } }); label = "Teacher (AI)"; } catch { text = ""; }
+  }
+  if (!text) { const a = answerFrom(A, q); text = a || "I can't find that in this lesson's text. Try different words, or make the lesson again with more text about it."; label = a ? "From your lesson text" : "Not covered"; }
+  out.innerHTML = `<b>${label}</b><br>${esc(text)}`;
+  if (label !== "Not covered" && Voice.kind !== "off") { try { await Voice.speak(text, S.rate); } catch { /* captions only */ } }
+}
+async function initMic() {
+  const mic = $("#mic"); dictation = await cap("dictation");
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (dictation) {
+    mic.hidden = false;
+    try {
+      dictation.onPartial?.(({ text }) => { $("#askIn").value = text; });
+      dictation.onFinal?.(({ text }) => { $("#askIn").value = text; });
+      dictation.onState?.(({ state }) => mic.classList.toggle("live", state === "listening"));
+    } catch { /* optional */ }
+    mic.onclick = () => { Voice.cancel(); dictation.start().catch(() => {}); };
+  } else if (SR) {
+    mic.hidden = false;
+    mic.onclick = () => {
+      try {
+        if (recog) { recog.stop(); return; }
+        Voice.cancel(); recog = new SR(); recog.lang = "en-US"; recog.interimResults = true;
+        recog.onresult = (ev) => { $("#askIn").value = [...ev.results].map((r) => r[0].transcript).join(" "); };
+        recog.onend = () => { recog = null; mic.classList.remove("live"); };
+        recog.onerror = () => { recog = null; mic.classList.remove("live"); };
+        recog.start(); mic.classList.add("live");
+      } catch { recog = null; }
+    };
+  }
+}
+
+/* ---------- wiring ---------- */
+const srcHint = () => { const n = wordsOf($("#src").value).length; $("#srcHint").textContent = n === 0 ? "" : n < 40 ? "Topic: the AI teaches it from its own knowledge." : `Notes (${n} words): the lesson uses only your text.`; };
+$("#src").addEventListener("input", srcHint);
+$("#build").addEventListener("submit", make);
+$("#stop").addEventListener("click", () => abortCtl?.abort());
+$("#testVoice").addEventListener("click", testVoice);
+$("#play").addEventListener("click", () => (S.playing ? pause() : play()));
+$("#prev").addEventListener("click", () => L && go(S.t > 2 && S.playing ? S.i : S.i - 1));
+$("#next").addEventListener("click", () => L && (S.i < L.scenes.length - 1 ? go(S.i + 1) : finish()));
+segsEl.addEventListener("click", (e) => { const b = e.target.closest(".seg"); if (b) go(+b.dataset.i); });
+$("#handBtn").addEventListener("click", () => ($("#hand").hidden ? openHand() : closeHand()));
+$("#handClose").addEventListener("click", closeHand);
+$("#askForm").addEventListener("submit", ask);
+$("#openFile").addEventListener("click", () => $("#file").click());
+$("#file").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  let t = await f.text();
+  if (/\.json$/i.test(f.name)) {
+    try { const j = JSON.parse(t); if (j.app === "teacherai-lite" && Array.isArray(j.scenes)) { loadLesson({ title: j.title, scenes: j.scenes, source: j.source || "", style: j.style, notes: [] }); say("Lesson loaded.", "ok"); e.target.value = ""; return; } } catch { /* fall through to plain text */ }
+  }
+  if (/\.html?$/i.test(f.name)) t = readHTML(t);
+  $("#src").value = t; srcHint(); say(`Loaded ${f.name}. Press Make lesson.`); e.target.value = "";
+});
+$("#scenes").addEventListener("click", (e) => { const b = e.target.closest(".jump"); if (b) go(+b.dataset.i); });
+$("#scenes").addEventListener("input", (e) => {
+  const li = e.target.closest(".sc"); if (!li || !L) return; const sc = L.scenes[+li.dataset.i];
+  if (e.target.dataset.f === "narration") sc.narration = e.target.value;
+  else sc.board = e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 4);
+  if (+li.dataset.i === S.i && !S.playing) { buildScene(); }
+});
+$("#voice").addEventListener("change", () => { Voice.forced = ""; applyVoice(); store.set("voice", $("#voice").value); prefetchFrom(S.i); if (S.playing) { S.t = 0; startScene(); } });
+$("#rate").addEventListener("input", (e) => { S.rate = +e.target.value; store.set("pace", S.rate); });
+$("#saveLesson").addEventListener("click", () => L && saveFile(slug() + "-lesson.json", JSON.stringify({ app: "teacherai-lite", v: 1, title: L.title, style: L.style, scenes: L.scenes.map(({ beat, section, narration, board, icon }) => ({ beat, section, narration, board, icon })), source: L.source }, null, 1)));
+$("#saveNotes").addEventListener("click", () => L && saveFile(slug() + "-notes.md", notesText()));
+$("#saveApp").addEventListener("click", () => PRISTINE ? saveFile("teacherai-lite.html", PRISTINE) : say("This view can't save a copy of the page.", "err"));
+$("#copyScript").addEventListener("click", async () => {
+  if (!L) return;
+  try { await navigator.clipboard.writeText(scriptText()); say("Script copied.", "ok"); }
+  catch { say("Copying is blocked here. Select the text in the lesson script below instead.", "err"); }
+});
+document.addEventListener("keydown", (e) => {
+  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !L) return;
+  if (e.key === " ") { e.preventDefault(); S.playing ? pause() : play(); }
+  if (e.key === "ArrowRight") $("#next").click();
+  if (e.key === "ArrowLeft") $("#prev").click();
+});
+// own-key settings (only for the saved copy; inside Claude the page cannot call other sites)
+{
+  const k = keyCfg();
+  $("#kProv").value = k.provider; $("#kModel").value = k.model; $("#kKey").value = k.key; $("#kBase").value = k.base;
+  const sync = () => { $("#kBaseWrap").hidden = $("#kProv").value !== "custom"; store.set("ai", { provider: $("#kProv").value, model: $("#kModel").value, key: $("#kKey").value, base: $("#kBase").value }); updateAiNote(); };
+  ["kProv", "kModel", "kKey", "kBase"].forEach((id) => $("#" + id).addEventListener("input", sync));
+  $("#kBaseWrap").hidden = k.provider !== "custom";
+  if (window.claude) $("#keyBox").hidden = true;
+}
+
+/* ---------- start ---------- */
+const SAMPLE = `Photosynthesis
+Photosynthesis is the process plants, algae and some bacteria use to turn light energy into chemical energy. It happens mostly in the leaves, inside tiny green structures called chloroplasts. Chloroplasts contain chlorophyll, the green pigment that absorbs sunlight, mainly red and blue light.
+
+The Two Stages
+In the first stage, the light-dependent reactions, chlorophyll captures sunlight and uses its energy to split water molecules into hydrogen and oxygen. The oxygen is released into the air as a by-product, which is the oxygen we breathe. The energy captured is stored in two carrier molecules called ATP and NADPH.
+In the second stage, the Calvin cycle, the plant uses ATP and NADPH to build sugar from carbon dioxide taken from the air. This stage does not need light directly, but it depends on the energy carriers made in the first stage.
+
+Why It Matters
+The sugar that plants make is their food, and it feeds almost every food chain on Earth. For example, when a rabbit eats grass, it is using energy that the grass first captured from the sun. Photosynthesis also removes carbon dioxide from the atmosphere, which helps regulate the climate. Forests and oceans full of algae together produce much of the oxygen in the air.
+
+Rate of Photosynthesis
+Several factors change how fast photosynthesis runs. More light speeds it up until the plant reaches its limit. Carbon dioxide levels and temperature also matter, and so does water supply. If a leaf loses too much water, it closes tiny pores called stomata, and photosynthesis slows down.`;
+
+const saved = store.get("opts", {});
+for (const [id, k] of [["len", "len"], ["how", "how"], ["theme", "theme"]]) if (saved[k]) $("#" + id).value = saved[k];
+S.rate = store.get("pace", 0.85); $("#rate").value = S.rate;
+$("#src").value = "Photosynthesis"; srcHint();
+fillVoiceSelect();
+try { window.speechSynthesis?.addEventListener("voiceschanged", fillVoiceSelect); } catch { /* ignore */ }
+Voice.init(); initMic(); updateAiNote();
+{ // an example lesson from the built-in engine (no AI call), so the first screen shows a finished board
+  const out = plan(analyse(SAMPLE, ""), { seconds: 60, how: "balanced" });
+  loadLesson({ title: out.title, scenes: out.scenes, source: SAMPLE, style: styleFrom($("#theme").value, ""), notes: [] });
+  say("This is an example lesson. Type your own topic and press Make lesson.");
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
