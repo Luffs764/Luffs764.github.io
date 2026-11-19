@@ -373,7 +373,7 @@ details b { color: var(--chalk); }
       <label for="azKey">Microsoft Azure Speech key<input type="text" id="azKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
       <label for="azRegion">Azure region (shown next to the key, for example eastus)<input type="text" id="azRegion" placeholder="eastus"></label>
       <label for="fishKey">Fish Audio API key<input type="text" id="fishKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
-      <label for="fishVoices">Fish Audio voices (one per line, Name=voice ID)<textarea id="fishVoices" rows="3" spellcheck="false"></textarea></label>
+      <label for="fishVoices">Extra Fish Audio voices (optional, one per line, Name=voice ID). Adrian and Nova are built in.<textarea id="fishVoices" rows="3" spellcheck="false"></textarea></label>
       <label for="elKey">ElevenLabs API key<input type="text" id="elKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
       <label for="elCustom">ElevenLabs voice ID (optional, adds your own voice)<input type="text" id="elCustom" autocomplete="off" spellcheck="false"></label>
       <p class="hint">Get a key: Fish Audio at fish.audio (API keys), Azure at portal.azure.com (create a "Speech" resource, free tier F0), ElevenLabs at elevenlabs.io (Profile, API keys). Pick the voices in the Teacher voice menu, or in the Podcast tab.</p>
@@ -867,14 +867,16 @@ const isCloud = (id) => /^(azure|eleven|fish):/.test(id || "");
 const AZURE = [["en-US-AriaNeural", "Aria", "female"], ["en-US-JennyNeural", "Jenny", "female"], ["en-US-AvaMultilingualNeural", "Ava", "female"], ["en-US-EmmaMultilingualNeural", "Emma", "female"], ["en-GB-SoniaNeural", "Sonia", "British female"], ["en-US-GuyNeural", "Guy", "male"], ["en-US-AndrewMultilingualNeural", "Andrew", "male"], ["en-US-BrianMultilingualNeural", "Brian", "male"], ["en-GB-RyanNeural", "Ryan", "British male"]];
 const ELEVEN = [["21m00Tcm4TlvDq8ikWAM", "Rachel", "female"], ["EXAVITQu4vr4xnSDxMaL", "Bella", "female"], ["MF3mGyEYCl7XYWbV9V6O", "Elli", "female"], ["pNInz6obpgDQGcFmaJgB", "Adam", "male"], ["TxGEqnHWrfWFTfGW9XjX", "Josh", "male"], ["ErXwobaYiN019PkySvjV", "Antoni", "male"]];
 const NAMES = { azure: "Microsoft", eleven: "ElevenLabs", fish: "Fish Audio" };
+// Fish Audio studio voices (curated by Fish Audio partners): Adrian, a deep steady narrator; Nova, a natural conversational voice.
+const FISH = [["bf322df2096a46f18c579d0baa36f41d", "Adrian", "male narrator"], ["a5aafcd92cee4a7db52ee34c82fedcab", "Nova", "female, conversational"]];
 const Cloud = {
-  cfg: () => ({ azKey: "", azRegion: "eastus", elKey: "", elCustom: "", fishKey: "", fishVoices: "Your Fish voice=f1a85bf41b4a40b4b770d148175866fc", ...store.get("cloud", {}) }),
+  cfg: () => ({ azKey: "", azRegion: "eastus", elKey: "", elCustom: "", fishKey: "", ...store.get("cloud", {}), fishVoices: ((store.get("cloud", {}).fishVoices ?? "") === "Your Fish voice=f1a85bf41b4a40b4b770d148175866fc" ? "" : store.get("cloud", {}).fishVoices ?? "") }),
   fishList() { return this.cfg().fishVoices.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const i = l.indexOf("="); return i > 0 ? [l.slice(i + 1).trim(), l.slice(0, i).trim()] : [l, `Fish voice ${l.slice(0, 6)}`]; }); },
   choices() {
     const c = this.cfg(), o = [];
     if (window.claude) return o;
+    if (c.fishKey.trim()) { for (const [id, name, g] of FISH) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio ${g}` }); for (const [id, name] of this.fishList()) if (!FISH.some((f) => f[0] === id)) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio` }); }
     if (c.elKey.trim()) { for (const [id, name, g] of ELEVEN) o.push({ id: "natural:eleven:" + id, label: `${name} · ElevenLabs ${g}` }); if (c.elCustom.trim()) o.push({ id: "natural:eleven:" + c.elCustom.trim(), label: "Your custom ElevenLabs voice" }); }
-    if (c.fishKey.trim()) for (const [id, name] of this.fishList()) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio` });
     if (c.azKey.trim()) for (const [id, name, g] of AZURE) o.push({ id: "natural:azure:" + id, label: `${name} · Microsoft neural ${g}` });
     return o;
   },
@@ -888,7 +890,9 @@ const Cloud = {
         const ssml = `<speak version="1.0" xml:lang="${id.slice(0, 5)}"><voice name="${id}"><prosody rate="${Math.round((clamp(speed, 0.6, 1.3) - 1) * 100)}%">${x(text)}</prosody></voice></speak>`;
         r = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, { method: "POST", headers: { "Ocp-Apim-Subscription-Key": c.azKey.trim(), "Content-Type": "application/ssml+xml", "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3" }, body: ssml });
       } else if (prov === "fish") {
-        r = await fetch("https://api.fish.audio/v1/tts", { method: "POST", headers: { Authorization: `Bearer ${c.fishKey.trim()}`, "Content-Type": "application/json", model: "s1" }, body: JSON.stringify({ text, reference_id: id, format: "mp3", mp3_bitrate: 128, latency: "normal", normalize: true }) });
+        const fishCall = (model) => fetch("https://api.fish.audio/v1/tts", { method: "POST", headers: { Authorization: `Bearer ${c.fishKey.trim()}`, "Content-Type": "application/json", model }, body: JSON.stringify({ text, reference_id: id, format: "mp3", mp3_bitrate: 128, latency: "normal", normalize: true }) });
+        r = await fishCall("s2.1-pro");
+        if (!r.ok && ![401, 403, 429].includes(r.status)) r = await fishCall("s1");
       } else {
         r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(id)}?output_format=mp3_44100_128`, { method: "POST", headers: { "xi-api-key": c.elKey.trim(), "Content-Type": "application/json", Accept: "audio/mpeg" }, body: JSON.stringify({ text, model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.5, similarity_boost: 0.8 } }) });
       }
@@ -901,6 +905,7 @@ window.TeacherAILite = { Natural, Cloud };
 // Voices the next scenes in the background so the teacher does not pause between them.
 function prefetchFrom(i) {
   if (!L || Voice.kind !== "natural" || (Natural.state !== "ready" && !isCloud(Voice.naturalVoice))) return;
+  if (isCloud(Voice.naturalVoice) && !S.playing) return; // paid voices: only make audio once you press play
   for (const sc of L.scenes.slice(i, i + 3)) Natural.clip(sc.narration, Voice.naturalVoice, clamp(S.rate * Voice.rateMul, 0.6, 1.3)).catch(() => {});
 }
 
@@ -982,14 +987,14 @@ const voiceNote = (msg, bad) => { const el = $("#voiceNote"); el.textContent = m
 // Two named teacher voices. Each uses the best engine this view has: Claude's voices, the natural
 // Kokoro voices (saved copy), or this device's voices, with its own pace and pitch.
 const CHARACTERS = {
-  law: { label: "LAW · calm, deep, measured", claude: "rounded", natural: "af_heart", rate: 0.97, pitch: 1, male: true },
-  monkey: { label: "MONKEY · bright, playful, upbeat", claude: "airy", natural: "af_bella", rate: 1.05, pitch: 1, male: false },
+  law: { label: "LAW · calm, deep, measured", claude: "rounded", fish: "bf322df2096a46f18c579d0baa36f41d", natural: "af_heart", rate: 0.97, pitch: 1, male: true },
+  monkey: { label: "MONKEY · bright, playful, upbeat", claude: "airy", fish: "a5aafcd92cee4a7db52ee34c82fedcab", natural: "af_bella", rate: 1.05, pitch: 1, male: false },
 };
 const hostPicks = () => store.get("hosts", {});
 function voiceChoices() {
   const o = [];
   o.push(...Cloud.choices());
-  if (Natural.supported) for (const [id, name, g] of NATURAL) o.push({ id: "natural:" + id, label: `${name} · natural ${g}` });
+  if (Natural.supported && !o.length) for (const [id, name, g] of NATURAL) o.push({ id: "natural:" + id, label: `${name} · natural ${g}` });
   if (Voice.claude) for (const v of ["rounded", "airy"]) o.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice` });
   let list = [];
   try { list = (window.speechSynthesis?.getVoices() || []).filter((v) => /^en/i.test(v.lang)); } catch { /* ignore */ }
@@ -1007,6 +1012,7 @@ function resolveChar(key) {
   else if (pick.startsWith("claude:") && Voice.claude) { st.kind = "claude"; st.claudeVoice = pick.slice(7); }
   else if (pick.startsWith("browser:") && "speechSynthesis" in window) dev(pick.slice(8));
   else if (Voice.claude) st.kind = "claude";
+  else if (Natural.supported && Cloud.cfg().fishKey.trim()) { st.kind = "natural"; st.naturalVoice = "fish:" + ch.fish; }
   else if (Natural.supported) st.kind = "natural";
   else if ("speechSynthesis" in window) dev("");
   return st;
@@ -1023,7 +1029,7 @@ function fillVoiceSelect() {
   const opts = [];
   if (Voice.claude) for (const v of ["rounded", "airy"]) opts.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice` });
   opts.push(...Cloud.choices());
-  if (Natural.supported) for (const [id, name, g] of NATURAL) opts.push({ id: "natural:" + id, label: `${name} · natural ${g} voice` });
+  if (Natural.supported && !opts.length) for (const [id, name, g] of NATURAL) opts.push({ id: "natural:" + id, label: `${name} · natural ${g} voice` });
   let list = [];
   try { list = (window.speechSynthesis?.getVoices() || []).filter((v) => /^en/i.test(v.lang)); } catch { /* ignore */ }
   list.sort((a, b) => voiceScore(b) - voiceScore(a));
