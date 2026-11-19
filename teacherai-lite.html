@@ -126,6 +126,7 @@ input[type=range] { width: 100%; accent-color: var(--mark); }
 .tab { flex: 1; min-height: 38px; border: 0; border-radius: 9px; background: none; cursor: pointer; font-weight: 600; color: var(--mute); }
 .tab[aria-selected=true] { background: var(--panel); color: var(--chalk); box-shadow: 0 0 0 1px var(--mark) inset; }
 .mk { display: flex; gap: 8px; }
+.ai-setup { border-color: #f2c94c66; gap: 8px; }
 .voicebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .hint.err { color: var(--danger); }
 .status { min-height: 22px; font-size: 14px; color: var(--mute); }
@@ -362,6 +363,11 @@ details b { color: var(--chalk); }
       </div>
       <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><button type="button" class="btn" id="premiumBtn">Add premium voices</button><span class="hint" id="voiceNote"></span></div>
       <p class="hint" id="cvNote"></p>
+      <div class="card ai-setup" id="aiSetup" hidden>
+        <b>Turn on AI (Sonnet, then Grok)</b>
+        <p class="hint">Paste your Vercel key, or your whole setup link, or a Claude, Grok or Fish Audio key. It is saved only on this device.</p>
+        <div class="ask"><input type="text" id="aiPaste" aria-label="Key or setup link" placeholder="vck_… or https://luffs764.github.io/#setup…" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn primary" id="aiPasteGo">Save</button></div>
+      </div>
       <div class="mk"><button class="btn primary" type="submit" id="make">Make lesson</button><button type="button" class="btn" id="stop" hidden>Stop</button></div>
       <p class="hint" id="aiNote">Checking for AI…</p>
       <p class="status" id="status" role="status" aria-live="polite"></p>
@@ -1286,7 +1292,8 @@ const keyUsable = () => !window.claude && !!keyCfg().key.trim() && (keyCfg().pro
 const aiAvailable = () => !!AI.sample || keyUsable();
 function updateAiNote() {
   const k = keyCfg(); const el = $("#aiNote");
-  el.textContent = AI.sample ? "AI: Claude writes your lessons (it uses your own Claude usage)." : keyUsable() ? `AI: your ${k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : k.provider === "vercel" ? "Vercel AI Gateway" : "own"} key writes your lessons.` : "AI is not available in this view, so lessons use the built-in engine and need pasted notes.";
+  const setup = document.getElementById("aiSetup"); if (setup) setup.hidden = !!window.claude || keyUsable();
+  el.textContent = AI.sample ? "AI: Claude writes your lessons (it uses your own Claude usage)." : keyUsable() ? (k.provider === "vercel" ? "AI is on: Claude Sonnet writes your lessons through your Vercel key, with Grok as the backup." : `AI: your ${k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : "own"} key writes your lessons.`) : (window.claude ? "AI is not available in this view, so lessons use the built-in engine and need pasted notes." : "AI is not set up on this device yet. Paste your Vercel key or setup link in the box above.");
 }
 const SAMPLE_MSG = { not_granted: "You did not allow this page to use Claude.", sampling_disabled: "Claude is not available on this account.", rate_limited: "Claude's usage limit was reached. Try again later.", refused: "Claude declined that request.", invalid_json: "Claude's answer was not in the right format.", empty_completion: "Claude sent back nothing.", upstream_error: "Claude had a connection problem.", prompt_too_large: "That text is too long for the AI." };
 const errMsg = (e) => SAMPLE_MSG[e?.code] || e?.message || "The AI did not answer.";
@@ -1295,7 +1302,39 @@ function parseLoose(t) {
   const a = t.indexOf("{"), b = t.lastIndexOf("}");
   return JSON.parse(a >= 0 && b > a ? t.slice(a, b + 1) : t);
 }
+// Vercel AI Gateway: ask which models the key can use, then prefer the newest Claude Sonnet, then Grok, then Kimi.
+const VERCEL_FALLBACK = ["anthropic/claude-sonnet-5.5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5", "xai/grok-4.3", "xai/grok-4", "moonshotai/kimi-k3"];
+let vercelPick = null;
+const verOf = (id) => (id.split("/")[1] || "").match(/\d+(?:\.\d+)*/g)?.flatMap((x) => x.split(".").map(Number)) || [];
+const newer = (a, b) => { const x = verOf(a), y = verOf(b); for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (y[i] || 0) - (x[i] || 0); return 0; };
+async function vercelModels(key) {
+  if (vercelPick) return vercelPick;
+  try {
+    const r = await fetch("https://ai-gateway.vercel.sh/v1/models", { headers: { authorization: "Bearer " + key } });
+    if (r.ok) {
+      const ids = ((await r.json()).data || []).map((m) => m.id).filter((id) => !/haiku|mini|nano|fast|vision|image|embed|audio|realtime|code/i.test(id));
+      const best = (re) => ids.filter((id) => re.test(id)).sort(newer)[0];
+      const list = [best(/^anthropic\/claude-sonnet/), best(/^xai\/grok/), best(/^moonshotai\/kimi/), best(/^anthropic\/claude-opus/)].filter(Boolean);
+      if (list.length) return (vercelPick = list);
+    }
+  } catch { /* use the built-in list */ }
+  return VERCEL_FALLBACK;
+}
+const prettyModel = (id) => { const [org, m] = id.split("/"); return org === "anthropic" ? m.replace(/^claude-/, "Claude ").replace(/-(\d)/, " $1").replace(/^Claude (\w)/, (x, c) => "Claude " + c.toUpperCase()) : org === "xai" ? m.replace(/^grok-/, "Grok ") : m; };
 async function keyChat(k, prompt, signal) {
+  if (k.provider === "vercel") {
+    const models = k.model.trim() ? [k.model.trim()] : await vercelModels(k.key.trim());
+    let last = "";
+    for (const model of models) {
+      let r;
+      try { r = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", { method: "POST", signal, headers: { "content-type": "application/json", authorization: "Bearer " + k.key.trim() }, body: JSON.stringify({ model, max_tokens: 12000, messages: [{ role: "user", content: prompt }] }) }); }
+      catch (e) { if (e?.name === "AbortError") throw e; throw new Error("Could not reach Vercel from this page. Check your internet connection. If it keeps happening, Vercel may be blocking calls from web pages."); }
+      if (r.ok) { const d = await r.json(); AI.by = `${prettyModel(model)} (Vercel)`; return d.choices?.[0]?.message?.content || ""; }
+      if (r.status === 401 || r.status === 403) throw new Error("Vercel rejected the key. Make a new key in Vercel and paste it again.");
+      last = `${prettyModel(model)} answered ${r.status}`;
+    }
+    throw new Error(`No AI model answered (${last}).`);
+  }
   let url, headers = { "content-type": "application/json" }, body;
   if (k.provider === "anthropic") {
     url = "https://api.anthropic.com/v1/messages";
@@ -1382,9 +1421,9 @@ async function make(e) {
       stop.hidden = false; say("Asking AI to write your lesson. The first time, Claude asks you to allow it. This can take up to a minute.");
       try { lesson = await aiLesson({ input, topicMode, seconds, how, style, signal: abortCtl.signal }); }
       catch (err) { if (err?.code === "cancelled" || err?.name === "AbortError") { say("Stopped."); return; } why = errMsg(err); }
-    } else why = "AI is not available in this view.";
+    } else why = window.claude ? "AI is not available in this view." : "AI is not set up on this device yet.";
     if (!lesson) {
-      if (topicMode) throw new Error(`${why} A topic alone needs AI. Paste your notes (a few sentences) and I will build the lesson with the built-in engine.`);
+      if (topicMode) throw new Error(window.claude ? `${why} A topic alone needs AI. Paste your notes (a few sentences) and I will build the lesson with the built-in engine.` : `${why} Paste your Vercel key or your setup link in the "Turn on AI" box above, then press Make lesson again.`);
       say("Building your lesson with the built-in engine…");
       const out = plan(analyse(input, ""), { seconds, how });
       lesson = { title: out.title, scenes: out.scenes, source: input, style, notes: [`${why} I used the built-in engine instead.`, ...out.notes] };
@@ -1826,6 +1865,28 @@ $("#toolSave").addEventListener("click", () => saveFile(`${toolView}-${slug()}.m
 $("#hubGo").addEventListener("click", () => { const v = $("#hubSrc").value.trim(); if (v) { $("#src").value = v; srcHint(); } show("lesson"); if (v) make(); });
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 $("#voiceLink").innerHTML = window.claude ? `The natural, human-sounding voices play on your website: <a href="https://luffs764.github.io" target="_blank" rel="noopener">open luffs764.github.io</a> in Safari.` : "";
+// Saves keys from a pasted key or setup link, on this device only.
+function applySetup(text) {
+  text = String(text || "").trim(); const saved = [];
+  const put = (prov, key) => {
+    if (!key) return;
+    if (prov === "fish") { store.set("cloud", { ...Cloud.cfg(), fishKey: key }); saved.push("Fish Audio"); }
+    else { store.set("ai", { ...keyCfg(), provider: prov, key, model: prov === keyCfg().provider ? keyCfg().model : "" }); vercelPick = null; saved.push({ vercel: "Vercel AI", anthropic: "Claude", xai: "Grok" }[prov]); }
+  };
+  const h = text.indexOf("#setup");
+  if (h >= 0) { const q = new URLSearchParams(text.slice(h + 6).replace(/^[?&]/, "")); put("vercel", q.get("vercel")); put("fish", q.get("fish")); }
+  else for (const part of text.split(/[\s,]+/)) {
+    if (/^vck_/.test(part)) put("vercel", part); else if (/^sk-fish-/.test(part)) put("fish", part);
+    else if (/^sk-ant-/.test(part)) put("anthropic", part); else if (/^xai-/.test(part)) put("xai", part);
+  }
+  const k = keyCfg(); $("#kProv").value = k.provider; $("#kKey").value = k.key; $("#kModel").value = k.model; $("#fishKey").value = Cloud.cfg().fishKey;
+  updateAiNote(); fillVoiceSelect();
+  return saved;
+}
+$("#aiPasteGo").addEventListener("click", () => {
+  const saved = applySetup($("#aiPaste").value); $("#aiPaste").value = "";
+  say(saved.length ? `Saved on this device: ${saved.join(" and ")}. Press Make lesson.` : "I did not recognise that. Paste a key that starts with vck_, sk-ant-, xai- or sk-fish-, or your setup link.", saved.length ? "ok" : "err");
+});
 // One-time setup link: #setup?vercel=KEY&fish=KEY saves keys on this device only, then removes them from the address bar.
 if (location.hash.startsWith("#setup")) {
   const q = new URLSearchParams(location.hash.slice(6).replace(/^[?&]/, ""));
