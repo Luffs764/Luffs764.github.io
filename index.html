@@ -367,6 +367,7 @@ details b { color: var(--chalk); }
         <b>Turn on AI (Sonnet, then Grok)</b>
         <p class="hint">Paste your Vercel key, or your whole setup link, or a Claude, Grok or Fish Audio key. It is saved only on this device.</p>
         <div class="ask"><input type="text" id="aiPaste" aria-label="Key or setup link" placeholder="vck_… or https://luffs764.github.io/#setup…" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn primary" id="aiPasteGo">Save</button></div>
+        <button type="button" class="btn" id="aiPasteClip">Paste from clipboard</button>
       </div>
       <div class="mk"><button class="btn primary" type="submit" id="make">Make lesson</button><button type="button" class="btn" id="stop" hidden>Stop</button></div>
       <p class="hint" id="aiNote">Checking for AI…</p>
@@ -1867,25 +1868,31 @@ window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 $("#voiceLink").innerHTML = window.claude ? `The natural, human-sounding voices play on your website: <a href="https://luffs764.github.io" target="_blank" rel="noopener">open luffs764.github.io</a> in Safari.` : "";
 // Saves keys from a pasted key or setup link, on this device only.
 function applySetup(text) {
-  text = String(text || "").trim(); const saved = [];
+  // Finds keys anywhere in the pasted text (a bare key, the setup link, or a whole message), ignoring invisible characters.
+  text = String(text || "").replace(/[​-‍⁠﻿]/g, "").replace(/%5F/gi, "_").replace(/%2D/gi, "-");
+  const saved = [];
   const put = (prov, key) => {
     if (!key) return;
     if (prov === "fish") { store.set("cloud", { ...Cloud.cfg(), fishKey: key }); saved.push("Fish Audio"); }
     else { store.set("ai", { ...keyCfg(), provider: prov, key, model: prov === keyCfg().provider ? keyCfg().model : "" }); vercelPick = null; saved.push({ vercel: "Vercel AI", anthropic: "Claude", xai: "Grok" }[prov]); }
   };
-  const h = text.indexOf("#setup");
-  if (h >= 0) { const q = new URLSearchParams(text.slice(h + 6).replace(/^[?&]/, "")); put("vercel", q.get("vercel")); put("fish", q.get("fish")); }
-  else for (const part of text.split(/[\s,]+/)) {
-    if (/^vck_/.test(part)) put("vercel", part); else if (/^sk-fish-/.test(part)) put("fish", part);
-    else if (/^sk-ant-/.test(part)) put("anthropic", part); else if (/^xai-/.test(part)) put("xai", part);
-  }
+  const find = (re) => (text.match(re) || [])[0];
+  put("vercel", find(/vck_[A-Za-z0-9]{20,}/));
+  put("fish", find(/sk-fish-[A-Za-z0-9_-]{20,}/));
+  put("anthropic", find(/sk-ant-[A-Za-z0-9_-]{20,}/));
+  if (!saved.includes("Vercel AI")) put("xai", find(/xai-[A-Za-z0-9]{20,}/));
   const k = keyCfg(); $("#kProv").value = k.provider; $("#kKey").value = k.key; $("#kModel").value = k.model; $("#fishKey").value = Cloud.cfg().fishKey;
   updateAiNote(); fillVoiceSelect();
   return saved;
 }
-$("#aiPasteGo").addEventListener("click", () => {
-  const saved = applySetup($("#aiPaste").value); $("#aiPaste").value = "";
-  say(saved.length ? `Saved on this device: ${saved.join(" and ")}. Press Make lesson.` : "I did not recognise that. Paste a key that starts with vck_, sk-ant-, xai- or sk-fish-, or your setup link.", saved.length ? "ok" : "err");
+function reportSetup(saved, text) {
+  const t = String(text || "").trim();
+  say(saved.length ? `Saved on this device: ${saved.join(" and ")}. Press Make lesson.` : t ? `I could not find a key in what you pasted (${t.length} characters, starting "${t.slice(0, 8)}"). Copy the whole key or setup link and try again.` : "Nothing was pasted. Copy your key or setup link first, then tap Paste.", saved.length ? "ok" : "err");
+}
+$("#aiPasteGo").addEventListener("click", () => { const t = $("#aiPaste").value; $("#aiPaste").value = ""; reportSetup(applySetup(t), t); });
+$("#aiPasteClip").addEventListener("click", async () => {
+  try { const t = await navigator.clipboard.readText(); reportSetup(applySetup(t), t); }
+  catch { say("Your browser did not let me read the clipboard. Long-press the box, choose Paste, then tap Save.", "err"); }
 });
 // One-time setup link: #setup?vercel=KEY&fish=KEY saves keys on this device only, then removes them from the address bar.
 if (location.hash.startsWith("#setup")) {
