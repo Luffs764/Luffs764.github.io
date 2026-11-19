@@ -400,7 +400,7 @@ details b { color: var(--chalk); }
     <p>Type a topic or paste your notes once. Then turn it into a lesson, a podcast, a guide, a cheat sheet, flashcards, a quiz and an exam forecast.</p>
     <div class="hero-in">
       <textarea id="hubSrc" rows="3" aria-label="Topic or notes" placeholder="Type a topic, like The French Revolution, or paste your notes."></textarea>
-      <div class="row-c"><button type="button" class="btn primary" id="hubGo">Make a lesson</button><button type="button" class="btn" id="hubVoices">Pick your 2 voices</button></div>
+      <button type="button" class="btn primary" id="hubGo">Make a lesson</button>
     </div>
     <p class="hint voicelink" id="voiceLink"></p>
   </div>
@@ -960,14 +960,14 @@ function bestDeviceVoice(male) {
 function fillVoiceSelect() {
   const sel = $("#voice"); const want = Voice.forced || store.get("voice", "");
   const opts = [];
-  for (const [id, c] of Object.entries(CHARACTERS)) opts.push({ id: "char:" + id, label: c.label });
-  for (const v of ["rounded", "airy", "buttery", "glassy"]) opts.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice${Voice.claude ? "" : " (not offered in this view)"}`, disabled: !Voice.claude });
+  if (Voice.claude) for (const v of ["rounded", "airy", "buttery", "glassy"]) opts.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice` });
   if (Natural.supported) for (const [id, name, g] of NATURAL) opts.push({ id: "natural:" + id, label: `${name} · natural ${g} voice` });
   let list = [];
   try { list = (window.speechSynthesis?.getVoices() || []).filter((v) => /^en/i.test(v.lang)); } catch { /* ignore */ }
   list.sort((a, b) => voiceScore(b) - voiceScore(a));
   for (const v of list) opts.push({ id: "browser:" + v.voiceURI, label: `${v.name} (${v.lang})${voiceScore(v) >= 40 ? " · high quality" : ""}` });
   if ("speechSynthesis" in window) opts.push({ id: "browser:default", label: "This device's voice" });
+  if (!Voice.claude) for (const v of ["rounded", "airy", "buttery", "glassy"]) opts.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice (not offered in this view)`, disabled: true });
   opts.push({ id: "off", label: "Captions only (no sound)" });
   sel.innerHTML = opts.map((o) => `<option value="${esc(o.id)}"${o.disabled ? " disabled" : ""}>${esc(o.label)}</option>`).join("");
   sel.value = opts.some((o) => o.id === want && !o.disabled) ? want : opts[0].id;
@@ -1742,7 +1742,6 @@ $("#toolGo").addEventListener("click", generateTool);
 $("#toolStop").addEventListener("click", () => toolCtl?.abort());
 $("#toolCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(toMarkdown(toolView, OUT[toolView])); $("#toolStatus").textContent = "Copied."; } catch { $("#toolStatus").textContent = "Copying is blocked here. Use Save instead."; } });
 $("#toolSave").addEventListener("click", () => saveFile(`${toolView}-${slug()}.md`, toMarkdown(toolView, OUT[toolView])));
-$("#hubVoices").addEventListener("click", () => show("podcast"));
 $("#hubGo").addEventListener("click", () => { const v = $("#hubSrc").value.trim(); if (v) { $("#src").value = v; srcHint(); } show("lesson"); if (v) make(); });
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 $("#voiceLink").innerHTML = window.claude ? `The natural, human-sounding voices play on your website: <a href="https://luffs764.github.io" target="_blank" rel="noopener">open luffs764.github.io</a> in Safari.` : "";
