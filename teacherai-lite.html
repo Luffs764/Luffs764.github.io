@@ -195,6 +195,8 @@ details b { color: var(--chalk); }
 @media (prefers-reduced-motion: reduce) { .host.talk .av::before, .host.talk .av::after, .pod.playing .wave i { animation: none; } }
 
 /* ---------- tabs, hub and study tools ---------- */
+.voice-banner { max-width: 1100px; margin: 12px auto 0; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #f2c94c55; background: #f2c94c14; border-radius: 16px; font-size: 14px; }
+.voice-banner a { text-decoration: none; }
 .nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--ink) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .nav-in { max-width: 1100px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .nav-in::-webkit-scrollbar { display: none; }
@@ -269,6 +271,7 @@ details b { color: var(--chalk); }
   <h1>Teacher<span>AI</span> Lite</h1>
   <p>Type a topic or paste notes. AI writes a slow, clear whiteboard lesson and a teacher reads it to you. If AI is not available, a built-in engine builds the lesson from your notes.</p>
 </header>
+<div class="voice-banner" id="voiceBanner" hidden><span><b>Want the natural voices?</b> Heart and Bella cannot play inside the Claude app. They play on your website.</span><a class="btn primary" href="https://luffs764.github.io" target="_blank" rel="noopener">Open the website</a></div>
 <nav class="nav" aria-label="Study tools"><div class="nav-in"><button type="button" class="navb" data-view="hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Home</span></button><button type="button" class="navb" data-view="lesson"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg><span>Lesson</span></button><button type="button" class="navb" data-view="podcast"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Podcast</span></button><button type="button" class="navb" data-view="voices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span>Voices</span></button><button type="button" class="navb" data-view="study-guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg><span>Study guide</span></button><button type="button" class="navb" data-view="cheat-sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg><span>Cheat sheet</span></button><button type="button" class="navb" data-view="flashcards"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg><span>Flashcards</span></button><button type="button" class="navb" data-view="quiz"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg><span>Quiz</span></button><button type="button" class="navb" data-view="exam"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Exam predictor</span></button><button type="button" class="navb" data-view="solver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg><span>Solver</span></button></div></nav>
 
 <main class="app view" id="view-lesson">
@@ -909,6 +912,8 @@ const Voice = {
       try { this.claude.onPosition?.(({ ms }) => { this.started = true; this.onMs && this.onMs(ms); }); } catch { /* optional */ }
       try { this.claude.onState?.(({ state }) => { if (state === "speaking") this.started = true; }); } catch { /* optional */ }
     }
+    const hq = (() => { try { return (window.speechSynthesis?.getVoices() || []).some((v) => /^en/i.test(v.lang) && voiceScore(v) >= 40); } catch { return false; } })();
+    $("#voiceBanner").hidden = !(window.claude && !this.claude && !hq);
     $("#cvNote").textContent = this.claude ? "Claude's voices are on. LAW and MONKEY use them." : window.claude ? "Claude's voices are not offered in this view. Claude does not pass them to pages in Safari or the Claude phone apps. Open this page in Claude in a computer browser or the desktop app, or try Chrome, to use them." : "";
     fillVoiceSelect();
   },
