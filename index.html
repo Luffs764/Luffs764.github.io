@@ -357,7 +357,7 @@ details b { color: var(--chalk); }
         <label for="voice">Teacher voice<select id="voice"></select></label>
         <label for="rate">Speaking speed <input type="range" id="rate" min="0.6" max="1.2" step="0.05" value="0.85"></label>
       </div>
-      <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><span class="hint" id="voiceNote"></span></div>
+      <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><button type="button" class="btn" id="premiumBtn">Add premium voices</button><span class="hint" id="voiceNote"></span></div>
       <p class="hint" id="cvNote"></p>
       <div class="mk"><button class="btn primary" type="submit" id="make">Make lesson</button><button type="button" class="btn" id="stop" hidden>Stop</button></div>
       <p class="hint" id="aiNote">Checking for AI…</p>
@@ -1453,6 +1453,8 @@ $("#src").addEventListener("input", srcHint);
 $("#build").addEventListener("submit", make);
 $("#stop").addEventListener("click", () => abortCtl?.abort());
 $("#testVoice").addEventListener("click", testVoice);
+$("#premiumBtn").addEventListener("click", openPremium);
+if (window.claude) $("#premiumBtn").hidden = true;
 $("#play").addEventListener("click", () => (S.playing ? pause() : play()));
 $("#prev").addEventListener("click", () => L && go(S.t > 2 && S.playing ? S.i : S.i - 1));
 $("#next").addEventListener("click", () => L && (S.i < L.scenes.length - 1 ? go(S.i + 1) : finish()));
@@ -1608,7 +1610,7 @@ function renderTool(kind, d) {
   if (!d && kind === "podcast") { out.innerHTML = `<div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
       <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
       <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
-      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : ""}</div>`; wirePicks(); return; }
+      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : `<button type="button" class="btn primary" id="getPremium">Add Microsoft or ElevenLabs voices</button>`}</div>`; wirePicks(); return; }
   if (!d) { out.innerHTML = ""; return; }
   if (kind === "study-guide") out.innerHTML = `<article class="doc"><h3>${esc(d.title || "Study guide")}</h3><p>${esc(d.overview || "")}</p>${(d.sections || []).map((s) => `<section><h4>${esc(s.heading)}</h4><ul>${(s.points || []).map((p) => `<li>${esc(p)}</li>`).join("")}</ul>${(s.key_terms || []).length ? `<dl class="terms">${s.key_terms.map((t) => `<dt>${esc(t.term)}</dt><dd>${esc(t.definition)}</dd>`).join("")}</dl>` : ""}</section>`).join("")}${d.summary ? `<p><b>Summary:</b> ${esc(d.summary)}</p>` : ""}</article>`;
   else if (kind === "cheat-sheet") {
@@ -1649,7 +1651,7 @@ function renderTool(kind, d) {
     <div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
       <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
       <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
-      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : ""}</div>
+      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : `<button type="button" class="btn primary" id="getPremium">Add Microsoft or ElevenLabs voices</button>`}</div>
     <details class="card transcript"><summary>Transcript</summary><div class="chat">${lines.map((l, k) => `<div class="line ${hostKey(l)}" data-k="${k}"><b>${hostKey(l).toUpperCase()}</b>${esc(l.text)}</div>`).join("")}</div></details>`;
     $("#pcPlay").onclick = () => (pod.playing ? podPause() : podPlay(pod.i));
     $("#pcPrev").onclick = () => podJump(pod.i - 1);
@@ -1679,7 +1681,9 @@ function refreshPicks() {
   }
   $("#pickNote").textContent = Natural.supported ? "Natural voices run on your device. The first time, about 95 MB downloads." : Voice.claude ? "Claude's voices are on. The natural voices only run in the website version." : "Only your device's voices are available inside Claude here. The natural voices play in the website version.";
 }
+function openPremium() { show("lesson"); const d = $("#cloudBox"); d.open = true; setTimeout(() => d.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }), 60); }
 function wirePicks() {
+  const gp = $("#getPremium"); if (gp) gp.onclick = openPremium;
   for (const [key, id, pv] of [["law", "#pickLaw", "#pvLaw"], ["monkey", "#pickMonkey", "#pvMonkey"]]) {
     $(id).onchange = (e) => { const p = hostPicks(); if (e.target.value) p[key] = e.target.value; else delete p[key]; store.set("hosts", p); };
     $(pv).onclick = () => previewHost(key);
