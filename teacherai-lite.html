@@ -1820,7 +1820,17 @@ $("#toolSave").addEventListener("click", () => saveFile(`${toolView}-${slug()}.m
 $("#hubGo").addEventListener("click", () => { const v = $("#hubSrc").value.trim(); if (v) { $("#src").value = v; srcHint(); } show("lesson"); if (v) make(); });
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 $("#voiceLink").innerHTML = window.claude ? `The natural, human-sounding voices play on your website: <a href="https://luffs764.github.io" target="_blank" rel="noopener">open luffs764.github.io</a> in Safari.` : "";
-show(location.hash.slice(1) || "hub");
+// One-time setup link: #setup?vercel=KEY&fish=KEY saves keys on this device only, then removes them from the address bar.
+if (location.hash.startsWith("#setup")) {
+  const q = new URLSearchParams(location.hash.slice(6).replace(/^[?&]/, ""));
+  const saved = [];
+  if (q.get("vercel")) { store.set("ai", { ...keyCfg(), provider: "vercel", key: q.get("vercel"), model: q.get("model") || keyCfg().model || "" }); saved.push("Vercel AI Gateway"); }
+  if (q.get("fish")) { store.set("cloud", { ...Cloud.cfg(), fishKey: q.get("fish") }); saved.push("Fish Audio"); }
+  try { history.replaceState(null, "", location.pathname + "#hub"); } catch { location.hash = "hub"; }
+  const k = keyCfg(); $("#kProv").value = k.provider; $("#kKey").value = k.key; $("#kModel").value = k.model; const c = Cloud.cfg(); $("#fishKey").value = c.fishKey;
+  updateAiNote(); fillVoiceSelect();
+  show("hub"); if (saved.length) $("#voiceLink").textContent = `Saved on this device: ${saved.join(" and ")}. Your keys are not in the website or its code.`;
+} else show(location.hash.slice(1) || "hub");
 })();
 </script>
 </body>
