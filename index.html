@@ -6,7 +6,7 @@
 <title>TeacherAI Lite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Caveat:wght@600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style id="app-style">
 /* Layout idea: a chalkboard-green classroom. Phone-shaped lesson stage on the left, lesson controls on the right; one column on a phone. */
 :root {
@@ -19,20 +19,22 @@
   --on-mark: #17140a;
   --danger: #ff8a80;
   --ui: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --gold2: #e9b949;
   --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--ink); color: var(--chalk); font: 400 16px/1.5 var(--ui); }
+body { margin: 0; background: radial-gradient(1200px 600px at 10% -10%, #1d332c 0%, transparent 60%), radial-gradient(900px 500px at 110% 10%, #2a2412 0%, transparent 55%), var(--ink); background-attachment: fixed; color: var(--chalk); font: 400 16px/1.5 var(--ui); }
 h1, h2, h3, p { margin: 0; text-wrap: balance; }
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
 
 .top { max-width: 1100px; margin: 0 auto; padding: 18px 16px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
-.top h1 { font: 800 28px/1.1 var(--ui); letter-spacing: -0.02em; }
-.top h1 span { color: var(--mark); }
+.top h1 { font: 400 34px/1 var(--serif); letter-spacing: -0.01em; }
+.top h1 span { color: var(--mark); font-style: italic; }
 .top p { color: var(--mute); font-size: 14px; max-width: 60ch; }
 
 .app { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); align-items: start; }
@@ -109,11 +111,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
 .btn { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-weight: 600; font-size: 14px; }
 .btn:hover { border-color: var(--mute); }
-.btn.primary { background: var(--mark); color: var(--on-mark); border-color: var(--mark); font-weight: 800; }
+.btn.primary { background: linear-gradient(180deg, #f6d46a, var(--gold2)); box-shadow: 0 8px 20px -10px #f2c94c99, inset 0 1px 0 #fff6; background-color: var(--mark); color: var(--on-mark); border-color: var(--mark); font-weight: 800; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
-.card h2 { font: 800 18px/1.2 var(--ui); }
+.card { background: linear-gradient(180deg, #1b2422, #161d1b); border: 1px solid #ffffff12; border-radius: 20px; padding: 18px; box-shadow: 0 20px 50px -35px #000, inset 0 1px 0 #ffffff0d; display: grid; gap: 14px; }
+.card h2 { font: 400 26px/1.1 var(--serif); }
 .stack { display: grid; gap: 14px; }
 .row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--mute); }
@@ -152,27 +154,63 @@ details ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; colo
 details b { color: var(--chalk); }
 
 
+
+/* ---------- podcast player ---------- */
+.pod { position: relative; overflow: hidden; border-radius: 28px; padding: 22px 18px 18px; display: grid; gap: 18px; background: radial-gradient(140% 90% at 50% -10%, #3a3216 0%, #1a1f1d 45%, #101413 100%); border: 1px solid #ffffff14; box-shadow: 0 40px 90px -50px #000, inset 0 1px 0 #ffffff12; }
+.pod::after { content: ""; position: absolute; inset: auto -20% -60% -20%; height: 70%; background: radial-gradient(closest-side, #f2c94c22, transparent); pointer-events: none; }
+.pod-top { display: flex; align-items: center; gap: 14px; }
+.cover { width: 64px; height: 64px; flex: none; border-radius: 16px; display: grid; place-items: center; background: conic-gradient(from 210deg, #f2c94c, #e07a3f, #6fd0a8, #f2c94c); box-shadow: 0 10px 24px -12px #000; font: 400 30px/1 var(--serif); color: #14110a; }
+.ep small { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mark); }
+.ep h3 { font: 400 26px/1.05 var(--serif); }
+.hosts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; gap: 6px; }
+.tool-out, .tool-out > *, #view-tool { min-width: 0; }
+.host { display: grid; justify-items: center; gap: 8px; text-align: center; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0.55; transform: scale(0.94); }
+.host.talk { opacity: 1; transform: scale(1); }
+.av { position: relative; width: clamp(64px, 20vw, 92px); height: clamp(64px, 20vw, 92px); border-radius: 50%; display: grid; place-items: center; font: 400 44px/1 var(--serif); }
+.av::before, .av::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid currentColor; opacity: 0; }
+.host.talk .av::before { animation: ring 1.6s ease-out infinite; } .host.talk .av::after { animation: ring 1.6s ease-out 0.8s infinite; }
+@keyframes ring { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.35); } }
+.host.law .av { background: radial-gradient(circle at 30% 25%, #3d6b5d, #1b2f29); color: #9fe3c6; box-shadow: inset 0 0 0 1px #9fe3c655; }
+.host.monkey .av { background: radial-gradient(circle at 30% 25%, #6b5520, #2c2410); color: #f2c94c; box-shadow: inset 0 0 0 1px #f2c94c66; }
+.host b { font-size: 13px; letter-spacing: 0.18em; } .host span { font-size: 12px; color: var(--mute); }
+.wave { display: flex; align-items: center; justify-content: center; gap: 3px; height: 40px; overflow: hidden; }
+.wave i { width: 3px; height: 8px; border-radius: 3px; background: var(--mark); opacity: 0.5; }
+.pod.playing .wave i { animation: wv 0.9s ease-in-out infinite; }
+@keyframes wv { 0%, 100% { height: 6px; opacity: 0.4; } 50% { height: 36px; opacity: 1; } }
+.now { min-height: 96px; text-align: center; display: grid; gap: 6px; align-content: center; }
+.now small { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; color: var(--mute); }
+.now p { font: 400 clamp(22px, 5.5vw, 30px)/1.2 var(--serif); text-wrap: balance; }
+.prog { height: 4px; border-radius: 4px; background: #ffffff14; overflow: hidden; } .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f6d46a, #e07a3f); transition: width 0.4s ease; }
+.prog-t { display: flex; justify-content: space-between; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.pctl { display: flex; align-items: center; justify-content: center; gap: 18px; position: relative; z-index: 1; }
+.pctl .ib { background: #ffffff0d; border-color: #ffffff1a; }
+.pctl .ib.big { width: 68px; height: 68px; background: linear-gradient(180deg, #f6d46a, var(--gold2)); color: #17140a; box-shadow: 0 12px 28px -10px #f2c94caa; }
+.transcript summary { cursor: pointer; font: 400 22px/1.2 var(--serif); }
+.transcript .chat { margin-top: 12px; }
+.line { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .host.talk .av::before, .host.talk .av::after, .pod.playing .wave i { animation: none; } }
+
 /* ---------- tabs, hub and study tools ---------- */
 .nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--ink) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .nav-in { max-width: 1100px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .nav-in::-webkit-scrollbar { display: none; }
 .navb { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--mute); font-weight: 600; font-size: 14px; cursor: pointer; }
 .navb svg, .ti svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.navb[aria-current="page"] { background: var(--mark); color: var(--on-mark); border-color: var(--mark); }
+.navb[aria-current="page"] { box-shadow: 0 6px 18px -8px #f2c94caa; background: var(--mark); color: var(--on-mark); border-color: var(--mark); }
 .view[hidden] { display: none !important; }
 #view-hub, #view-tool { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 18px; }
-.hero { background: radial-gradient(120% 140% at 0% 0%, #23413a, var(--panel) 60%); border: 1px solid var(--line); border-radius: 18px; padding: 22px 18px; display: grid; gap: 10px; }
+.hero { background: radial-gradient(120% 140% at 0% 0%, #24453b, #161d1b 62%); border: 1px solid #ffffff14; border-radius: 24px; padding: 28px 22px; box-shadow: 0 30px 80px -40px #000, inset 0 1px 0 #ffffff10; display: grid; gap: 10px; }
 .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mark); }
-.hero h2 { font: 800 clamp(24px, 6vw, 36px)/1.1 var(--ui); letter-spacing: -0.02em; }
+.hero h2 { font: 400 clamp(32px, 8vw, 52px)/1.02 var(--serif); letter-spacing: -0.01em; } .hero h2 em { color: var(--mark); }
 .hero p { color: var(--mute); max-width: 60ch; }
 .hero-in { display: grid; gap: 10px; grid-template-columns: 1fr; }
 @media (min-width: 700px) { .hero-in { grid-template-columns: 1fr auto; align-items: end; } }
 .voicelink a { color: var(--mark); font-weight: 700; }
-.sec-h { font: 800 17px/1.2 var(--ui); }
+.sec-h { font: 400 26px/1.1 var(--serif); }
 .tools-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-.tool { text-align: left; display: grid; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
+.tool { text-align: left; display: grid; gap: 4px; padding: 16px; border-radius: 18px; border: 1px solid #ffffff12; background: linear-gradient(180deg, #1c2523, #151c1a); box-shadow: 0 14px 30px -22px #000, inset 0 1px 0 #ffffff0d; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
 .tool:hover { transform: translateY(-2px); border-color: var(--mark); }
-.ti { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #f2c94c22; color: var(--mark); margin-bottom: 4px; }
+.ti { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, #f2c94c33, #f2c94c0d); box-shadow: inset 0 0 0 1px #f2c94c33; color: var(--mark); margin-bottom: 4px; }
 .ti.big { width: 48px; height: 48px; } .ti.big svg { width: 24px; height: 24px; }
 .tt { font-weight: 800; font-size: 15px; }
 .ts { font-size: 13px; color: var(--mute); }
@@ -180,10 +218,10 @@ details b { color: var(--chalk); }
 .recent button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
 .recent small { color: var(--mute); }
 .tool-head { display: flex; align-items: center; gap: 12px; }
-.tool-head h2 { font: 800 24px/1.1 var(--ui); }
+.tool-head h2 { font: 400 36px/1 var(--serif); }
 .tool-out { display: grid; gap: 12px; }
-.doc { background: #f7f5ee; color: #1d2421; border-radius: 16px; padding: 20px; display: grid; gap: 14px; }
-.doc h3 { font: 800 22px/1.15 var(--ui); } .doc h4 { font: 800 16px/1.2 var(--ui); color: #2c5a4b; }
+.doc { background: linear-gradient(180deg, #fbf9f3, #f3efe3); color: #1d2421; border-radius: 22px; padding: 26px 22px; box-shadow: 0 30px 60px -40px #000; display: grid; gap: 14px; }
+.doc h3 { font: 400 34px/1.05 var(--serif); } .doc h4 { font: 800 16px/1.2 var(--ui); color: #2c5a4b; }
 .doc ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .doc .terms { display: grid; gap: 6px; } .doc dt { font-weight: 800; } .doc dd { margin: 0 0 4px; color: #44504b; }
 .sheet { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
@@ -354,7 +392,7 @@ details b { color: var(--chalk); }
 <section class="view" id="view-hub" hidden>
   <div class="hero">
     <p class="eyebrow">Your study studio</p>
-    <h2>Learn it faster, remember it longer</h2>
+    <h2>Learn it faster, <em>remember it longer</em></h2>
     <p>Type a topic or paste your notes once. Then turn it into a lesson, a podcast, a guide, a cheat sheet, flashcards, a quiz and an exam forecast.</p>
     <div class="hero-in">
       <textarea id="hubSrc" rows="3" aria-label="Topic or notes" placeholder="Type a topic, like The French Revolution, or paste your notes."></textarea>
@@ -1437,7 +1475,7 @@ const TOOLS = {
 const OUT = {}; let toolView = "", toolCtl = null;
 const material = (input) => (wordsOf(input).length < 40 ? `Topic: ${input}\nUse your own knowledge. Be accurate; leave out anything you are unsure of.` : `Use ONLY this material and add nothing that is not in it:\n"""\n${input.slice(0, 60000)}\n"""`);
 const PROMPTS = {
-  podcast: (m) => `Write a lively, friendly two-host study podcast script. Hosts: LAW (calm, clear expert who explains) and MONKEY (curious, playful learner who asks the questions students would ask and gives quick reactions). 16 to 22 lines, alternating mostly, each line 1 to 3 short spoken sentences. Open with MONKEY welcoming listeners, end with a quick recap by LAW. Plain spoken English, no markdown, no stage directions.\n${m}\nReply with ONLY JSON: {"title": string, "lines": [{"speaker": "LAW"|"MONKEY", "text": string}]}`,
+  podcast: (m) => `Write a natural, lively two-host study podcast where the hosts really talk to each other and bounce ideas around. LAW is the calm, clear expert; MONKEY is curious, funny and quick, and brings examples from everyday life. They react to each other ("Wait, so...", "Exactly, and here's the cool part...", "Oh, that's like..."), build on each other's points, sometimes disagree briefly then agree, use one memorable analogy, and check understanding. 18 to 26 lines, mostly alternating, each line 1 to 3 short spoken sentences. MONKEY opens and welcomes listeners; LAW closes with a crisp three-point recap. Plain spoken English, no markdown, no stage directions.\n${m}\nReply with ONLY JSON: {"title": string, "lines": [{"speaker": "LAW"|"MONKEY", "text": string}]}`,
   "study-guide": (m) => `Write a clear study guide.\n${m}\nReply with ONLY JSON: {"title": string, "overview": string (2-3 sentences), "sections": [{"heading": string, "points": [string] (3-5 short points), "key_terms": [{"term": string, "definition": string}]}] (3-6 sections), "summary": string}`,
   "cheat-sheet": (m) => `Write a dense one-page exam cheat sheet: only the facts, definitions, formulas, dates and rules that earn marks. Very short phrases.\n${m}\nReply with ONLY JSON: {"title": string, "blocks": [{"heading": string, "items": [string]}] (4-8 blocks, 3-6 items each), "formulas": [string], "mnemonics": [string], "mistakes": [string]}`,
   flashcards: (m) => `Make 16 study flashcards. Front: a term or a short question. Back: a clear answer in one or two sentences.\n${m}\nReply with ONLY JSON: {"cards": [{"front": string, "back": string}]}`,
@@ -1516,9 +1554,22 @@ function renderTool(kind, d) {
   } else if (kind === "solver") {
     out.innerHTML = (d.steps || []).map((s, k) => `<div class="step"><b>Step ${k + 1}: ${esc(s.title)}</b><span>${esc(s.detail)}</span></div>`).join("") + `<div class="step"><b>Answer</b><span>${esc(d.answer || "")}</span></div>`;
   } else if (kind === "podcast") {
-    out.innerHTML = `<div class="card"><h3 class="sec-h">${esc(d.title || "Study podcast")}</h3><div class="row-c"><button type="button" class="btn primary" id="pcPlay">Play podcast</button><button type="button" class="btn" id="pcStop">Stop</button></div><p class="hint" id="pcNote">LAW explains, MONKEY asks. ${Voice.claude ? "Voices: Claude's rounded and airy." : Natural.supported ? "Voices: natural Michael and Heart (about 95 MB the first time)." : `Voices: your device's. <a href="https://luffs764.github.io" target="_blank" rel="noopener">Natural voices on your website</a>.`}</p></div><div class="chat">${(d.lines || []).map((l, k) => `<div class="line ${String(l.speaker).toLowerCase() === "monkey" ? "monkey" : "law"}" data-k="${k}"><b>${String(l.speaker).toUpperCase() === "MONKEY" ? "MONKEY" : "LAW"}</b>${esc(l.text)}</div>`).join("")}</div>`;
-    $("#pcPlay").onclick = () => playPodcast(d);
-    $("#pcStop").onclick = stopPodcast;
+    const lines = d.lines || []; pod.d = d; pod.i = Math.min(pod.i || 0, Math.max(0, lines.length - 1));
+    const wave = Array.from({ length: 28 }, (_, k) => `<i style="animation-delay:${(k * 0.07) % 0.9}s"></i>`).join("");
+    out.innerHTML = `<div class="pod" id="pod">
+      <div class="pod-top"><div class="cover">${esc((d.title || "S")[0].toUpperCase())}</div><div class="ep"><small>TeacherAI podcast · ${lines.length} lines</small><h3>${esc(d.title || "Study podcast")}</h3></div></div>
+      <div class="hosts"><div class="host law" id="hLaw"><div class="av">L</div><b>LAW</b><span>The expert</span></div><div class="wave" aria-hidden="true">${wave}</div><div class="host monkey" id="hMonkey"><div class="av">M</div><b>MONKEY</b><span>The curious one</span></div></div>
+      <div class="now" aria-live="polite"><small id="nowWho">PRESS PLAY</small><p id="nowLine">${esc(lines[0] ? lines[0].text : "")}</p></div>
+      <div><div class="prog"><i id="podBar"></i></div><div class="prog-t"><span id="podPos">1 / ${lines.length}</span><span id="podVoices">${Voice.claude ? "Claude voices" : Natural.supported ? "Natural voices" : "Device voices"}</span></div></div>
+      <div class="pctl"><button type="button" class="ib" id="pcPrev" aria-label="Previous line"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button><button type="button" class="ib big" id="pcPlay" aria-label="Play"><svg viewBox="0 0 24 24" id="pcIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button><button type="button" class="ib" id="pcNext" aria-label="Next line"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg></button></div>
+      <p class="hint" id="pcNote" style="text-align:center">${Voice.claude || Natural.supported ? "LAW and MONKEY each have their own voice." : `Using your device's voices. For natural voices open <a href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">luffs764.github.io</a>.`}</p>
+    </div>
+    <details class="card transcript"><summary>Transcript</summary><div class="chat">${lines.map((l, k) => `<div class="line ${hostKey(l)}" data-k="${k}"><b>${hostKey(l).toUpperCase()}</b>${esc(l.text)}</div>`).join("")}</div></details>`;
+    $("#pcPlay").onclick = () => (pod.playing ? podPause() : podPlay(pod.i));
+    $("#pcPrev").onclick = () => podJump(pod.i - 1);
+    $("#pcNext").onclick = () => podJump(pod.i + 1);
+    out.querySelectorAll(".line").forEach((el) => (el.onclick = () => podJump(+el.dataset.k)));
+    podPaint();
   }
 }
 function toMarkdown(kind, d) {
@@ -1538,26 +1589,48 @@ function charState(key) {
   if (Voice.claude) st.kind = "claude"; else if (Natural.supported) st.kind = "natural"; else if ("speechSynthesis" in window) { st.kind = "browser"; st.browserVoice = bestDeviceVoice(ch.male); }
   return st;
 }
-let podGen = 0;
-function stopPodcast() { podGen++; Voice.cancel(); document.querySelectorAll(".line.now").forEach((x) => x.classList.remove("now")); }
-async function playPodcast(d) {
-  stopPodcast(); const my = ++podGen; if (S.playing) pause();
-  if (Natural.supported) { Natural.unlock(); Natural.onProgress = (pct) => { const n = $("#pcNote"); if (n) n.textContent = `Downloading the natural voices: ${pct}% (only the first time).`; }; }
-  const lines = d.lines || [];
-  const keyOf = (l) => (String(l.speaker).toUpperCase() === "MONKEY" ? "monkey" : "law");
-  for (let k = 0; k < lines.length; k++) {
-    if (my !== podGen) return;
-    const el = document.querySelector(`.line[data-k="${k}"]`); document.querySelectorAll(".line.now").forEach((x) => x.classList.remove("now")); el?.classList.add("now"); el?.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
-    const st = charState(keyOf(lines[k]));
-    if (st.kind === "natural") for (const nx of lines.slice(k + 1, k + 3)) { const s2 = charState(keyOf(nx)); Natural.clip(nx.text, s2.naturalVoice, clamp(S.rate * s2.rateMul, 0.6, 1.3)).catch(() => {}); }
+const pod = { d: null, i: 0, playing: false, gen: 0 };
+const hostKey = (l) => (String(l.speaker).toUpperCase() === "MONKEY" ? "monkey" : "law");
+function podPaint() {
+  const lines = pod.d?.lines || []; const l = lines[pod.i]; if (!$("#pod")) return;
+  $("#pod").classList.toggle("playing", pod.playing);
+  $("#hLaw").classList.toggle("talk", pod.playing && l && hostKey(l) === "law");
+  $("#hMonkey").classList.toggle("talk", pod.playing && l && hostKey(l) === "monkey");
+  $("#nowWho").textContent = l ? (pod.playing ? `${hostKey(l).toUpperCase()} IS SPEAKING` : hostKey(l).toUpperCase()) : "";
+  $("#nowLine").textContent = l ? l.text : "";
+  $("#podBar").style.width = lines.length ? `${((pod.i + (pod.playing ? 0.5 : 0)) / lines.length) * 100}%` : "0";
+  $("#podPos").textContent = `${Math.min(pod.i + 1, lines.length)} / ${lines.length}`;
+  $("#pcIcon").innerHTML = pod.playing ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  $("#pcPlay").setAttribute("aria-label", pod.playing ? "Pause" : "Play");
+  document.querySelectorAll(".transcript .line").forEach((el) => el.classList.toggle("now", +el.dataset.k === pod.i));
+}
+function podPause() { pod.gen++; pod.playing = false; Voice.cancel(); podPaint(); }
+function stopPodcast() { podPause(); }
+function podJump(i) { const n = pod.d?.lines?.length || 0; if (!n) return; const was = pod.playing; podPause(); pod.i = clamp(i, 0, n - 1); podPaint(); if (was) podPlay(pod.i); }
+function charState(key) {
+  const ch = CHARACTERS[key], st = { rateMul: ch.rate, pitch: ch.pitch, kind: "off", claudeVoice: ch.claude, naturalVoice: ch.natural, browserVoice: null };
+  if (Voice.claude) st.kind = "claude"; else if (Natural.supported) st.kind = "natural"; else if ("speechSynthesis" in window) { st.kind = "browser"; st.browserVoice = bestDeviceVoice(ch.male); }
+  return st;
+}
+async function podPlay(from) {
+  const lines = pod.d?.lines || []; if (!lines.length) return;
+  podPause(); const my = ++pod.gen; pod.playing = true; if (S.playing) pause();
+  if (from >= lines.length) from = 0; pod.i = from; podPaint();
+  if (Natural.supported) { Natural.unlock(); Natural.onProgress = (pct) => { const n = $("#pcNote"); if (n) n.textContent = `Getting the natural voices ready: ${pct}% (only the first time).`; }; }
+  for (let k = from; k < lines.length; k++) {
+    if (my !== pod.gen) return;
+    pod.i = k; podPaint();
+    const st = charState(hostKey(lines[k]));
+    if (st.kind === "natural") for (const nx of lines.slice(k + 1, k + 3)) { const s2 = charState(hostKey(nx)); Natural.clip(nx.text, s2.naturalVoice, clamp(S.rate * s2.rateMul, 0.6, 1.3)).catch(() => {}); }
     const saved = { kind: Voice.kind, claudeVoice: Voice.claudeVoice, naturalVoice: Voice.naturalVoice, browserVoice: Voice.browserVoice, rateMul: Voice.rateMul, pitch: Voice.pitch };
     Object.assign(Voice, st);
-    try { if (st.kind === "off") await new Promise((r) => setTimeout(r, 2500)); else await Voice.speak(lines[k].text, S.rate); }
-    catch (e) { const n = $("#pcNote"); if (n) n.textContent = `The voice stopped: ${e?.message || "it could not play here"}.`; Object.assign(Voice, saved); return; }
+    try { if (st.kind === "off") await new Promise((r) => setTimeout(r, 2600)); else await Voice.speak(lines[k].text, S.rate); }
+    catch (e) { Object.assign(Voice, saved); if (my === pod.gen) { const n = $("#pcNote"); if (n) n.textContent = `The voice stopped: ${e?.message || "it could not play here"}.`; pod.playing = false; podPaint(); } return; }
     Object.assign(Voice, saved);
-    await new Promise((r) => setTimeout(r, 250));
+    if (my !== pod.gen) return;
+    await new Promise((r) => setTimeout(r, 220));
   }
-  if (my === podGen) document.querySelectorAll(".line.now").forEach((x) => x.classList.remove("now"));
+  if (my === pod.gen) { pod.playing = false; pod.i = 0; podPaint(); $("#nowWho").textContent = "EPISODE FINISHED"; }
 }
 
 async function generateTool() {
@@ -1574,6 +1647,7 @@ async function generateTool() {
       catch (e) { if (e?.code === "cancelled" || e?.name === "AbortError") { st.textContent = "Stopped."; return; } st.textContent = `${errMsg(e)} Using the built-in engine…`; }
     }
     if (!d || typeof d !== "object") d = builtinTool(kind, input);
+    if (kind === "podcast") { podPause(); pod.i = 0; }
     OUT[kind] = d; renderTool(kind, d); showToolActions(true);
     st.className = "status ok"; st.textContent = by ? `Made with ${by}.` : "Made with the built-in engine from your notes.";
     rememberSet(input, kind);
@@ -1596,6 +1670,7 @@ function renderRecent() {
 
 // Views
 function show(view) {
+  if (view !== "podcast" && pod.playing) podPause();
   if (view !== "hub" && view !== "lesson" && !TOOLS[view]) view = "hub";
   $("#view-hub").hidden = view !== "hub"; $("#view-lesson").hidden = view !== "lesson"; $("#view-tool").hidden = !TOOLS[view];
   document.querySelectorAll(".navb").forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
