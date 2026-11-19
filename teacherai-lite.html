@@ -365,13 +365,15 @@ details b { color: var(--chalk); }
     </form>
 
     <details class="card" id="cloudBox">
-      <summary>Premium voices: Microsoft and ElevenLabs</summary>
+      <summary>Premium voices: Fish Audio, Microsoft and ElevenLabs</summary>
       <p class="hint">Optional. Add your own key to unlock very natural voices. Each service has a free monthly allowance, and the key stays on this device.</p>
       <label for="azKey">Microsoft Azure Speech key<input type="text" id="azKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
       <label for="azRegion">Azure region (shown next to the key, for example eastus)<input type="text" id="azRegion" placeholder="eastus"></label>
+      <label for="fishKey">Fish Audio API key<input type="text" id="fishKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
+      <label for="fishVoices">Fish Audio voices (one per line, Name=voice ID)<textarea id="fishVoices" rows="3" spellcheck="false"></textarea></label>
       <label for="elKey">ElevenLabs API key<input type="text" id="elKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
       <label for="elCustom">ElevenLabs voice ID (optional, adds your own voice)<input type="text" id="elCustom" autocomplete="off" spellcheck="false"></label>
-      <p class="hint">Get a key: Azure at portal.azure.com (create a "Speech" resource, free tier F0), ElevenLabs at elevenlabs.io (Profile, API keys). Pick the voices in the Teacher voice menu, or in the Podcast tab.</p>
+      <p class="hint">Get a key: Fish Audio at fish.audio (API keys), Azure at portal.azure.com (create a "Speech" resource, free tier F0), ElevenLabs at elevenlabs.io (Profile, API keys). Pick the voices in the Teacher voice menu, or in the Podcast tab.</p>
     </details>
 
     <details class="card" id="keyBox">
@@ -858,15 +860,18 @@ const Natural = {
 };
 
 // Premium cloud voices (optional): Microsoft Azure neural voices and ElevenLabs, with your own key (kept on this device).
-const isCloud = (id) => /^(azure|eleven):/.test(id || "");
+const isCloud = (id) => /^(azure|eleven|fish):/.test(id || "");
 const AZURE = [["en-US-AriaNeural", "Aria", "female"], ["en-US-JennyNeural", "Jenny", "female"], ["en-US-AvaMultilingualNeural", "Ava", "female"], ["en-US-EmmaMultilingualNeural", "Emma", "female"], ["en-GB-SoniaNeural", "Sonia", "British female"], ["en-US-GuyNeural", "Guy", "male"], ["en-US-AndrewMultilingualNeural", "Andrew", "male"], ["en-US-BrianMultilingualNeural", "Brian", "male"], ["en-US-DavisNeural", "Davis", "male"], ["en-GB-RyanNeural", "Ryan", "British male"]];
 const ELEVEN = [["21m00Tcm4TlvDq8ikWAM", "Rachel", "female"], ["EXAVITQu4vr4xnSDxMaL", "Bella", "female"], ["MF3mGyEYCl7XYWbV9V6O", "Elli", "female"], ["pNInz6obpgDQGcFmaJgB", "Adam", "male"], ["TxGEqnHWrfWFTfGW9XjX", "Josh", "male"], ["ErXwobaYiN019PkySvjV", "Antoni", "male"]];
+const NAMES = { azure: "Microsoft", eleven: "ElevenLabs", fish: "Fish Audio" };
 const Cloud = {
-  cfg: () => ({ azKey: "", azRegion: "eastus", elKey: "", elCustom: "", ...store.get("cloud", {}) }),
+  cfg: () => ({ azKey: "", azRegion: "eastus", elKey: "", elCustom: "", fishKey: "", fishVoices: "Your Fish voice=f1a85bf41b4a40b4b770d148175866fc", ...store.get("cloud", {}) }),
+  fishList() { return this.cfg().fishVoices.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const i = l.indexOf("="); return i > 0 ? [l.slice(i + 1).trim(), l.slice(0, i).trim()] : [l, `Fish voice ${l.slice(0, 6)}`]; }); },
   choices() {
     const c = this.cfg(), o = [];
     if (window.claude) return o;
     if (c.elKey.trim()) { for (const [id, name, g] of ELEVEN) o.push({ id: "natural:eleven:" + id, label: `${name} · ElevenLabs ${g}` }); if (c.elCustom.trim()) o.push({ id: "natural:eleven:" + c.elCustom.trim(), label: "Your custom ElevenLabs voice" }); }
+    if (c.fishKey.trim()) for (const [id, name] of this.fishList()) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio` });
     if (c.azKey.trim()) for (const [id, name, g] of AZURE) o.push({ id: "natural:azure:" + id, label: `${name} · Microsoft neural ${g}` });
     return o;
   },
@@ -879,11 +884,13 @@ const Cloud = {
         const x = (t) => t.replace(/[<>&"']/g, (ch) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[ch]));
         const ssml = `<speak version="1.0" xml:lang="${id.slice(0, 5)}"><voice name="${id}"><prosody rate="${Math.round((clamp(speed, 0.6, 1.3) - 1) * 100)}%">${x(text)}</prosody></voice></speak>`;
         r = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, { method: "POST", headers: { "Ocp-Apim-Subscription-Key": c.azKey.trim(), "Content-Type": "application/ssml+xml", "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3" }, body: ssml });
+      } else if (prov === "fish") {
+        r = await fetch("https://api.fish.audio/v1/tts", { method: "POST", headers: { Authorization: `Bearer ${c.fishKey.trim()}`, "Content-Type": "application/json", model: "s1" }, body: JSON.stringify({ text, reference_id: id, format: "mp3", mp3_bitrate: 128, latency: "normal", normalize: true }) });
       } else {
         r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(id)}?output_format=mp3_44100_128`, { method: "POST", headers: { "xi-api-key": c.elKey.trim(), "Content-Type": "application/json", Accept: "audio/mpeg" }, body: JSON.stringify({ text, model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.5, similarity_boost: 0.8 } }) });
       }
-    } catch { throw new Error(`could not reach ${prov === "azure" ? "Microsoft" : "ElevenLabs"} (check the key, the region and your connection)`); }
-    if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? `the ${prov === "azure" ? "Microsoft" : "ElevenLabs"} key was rejected` : r.status === 429 ? "the free monthly allowance or rate limit was reached" : `${prov === "azure" ? "Microsoft" : "ElevenLabs"} answered ${r.status}`);
+    } catch { throw new Error(`could not reach ${NAMES[prov]} (check the key, the voice ID and your connection)`); }
+    if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? `the ${NAMES[prov]} key was rejected` : r.status === 429 ? "the free monthly allowance or rate limit was reached" : `${NAMES[prov]} answered ${r.status}`);
     return { url: URL.createObjectURL(new Blob([await r.arrayBuffer()], { type: "audio/mpeg" })), duration: 0 };
   },
 };
@@ -1504,9 +1511,9 @@ document.addEventListener("keydown", (e) => {
 // premium cloud voice keys (saved copy only), shown in the Voices tab
 {
   if (window.claude) $("#premiumClaude").hidden = false; else $("#voicesCards").appendChild($("#cloudBox"));
-  const c = Cloud.cfg(); $("#azKey").value = c.azKey; $("#azRegion").value = c.azRegion; $("#elKey").value = c.elKey; $("#elCustom").value = c.elCustom;
-  const sync = () => { store.set("cloud", { azKey: $("#azKey").value, azRegion: $("#azRegion").value, elKey: $("#elKey").value, elCustom: $("#elCustom").value }); Natural.clips.clear(); fillVoiceSelect(); };
-  ["azKey", "azRegion", "elKey", "elCustom"].forEach((id) => $("#" + id).addEventListener("change", sync));
+  const c = Cloud.cfg(); $("#azKey").value = c.azKey; $("#azRegion").value = c.azRegion; $("#elKey").value = c.elKey; $("#fishKey").value = c.fishKey; $("#fishVoices").value = c.fishVoices; $("#elCustom").value = c.elCustom;
+  const sync = () => { store.set("cloud", { azKey: $("#azKey").value, azRegion: $("#azRegion").value, elKey: $("#elKey").value, elCustom: $("#elCustom").value, fishKey: $("#fishKey").value, fishVoices: $("#fishVoices").value }); Natural.clips.clear(); fillVoiceSelect(); };
+  ["azKey", "azRegion", "elKey", "elCustom", "fishKey", "fishVoices"].forEach((id) => $("#" + id).addEventListener("change", sync));
   }
 // own-key settings (only for the saved copy; inside Claude the page cannot call other sites)
 {
