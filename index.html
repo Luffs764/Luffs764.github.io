@@ -202,7 +202,7 @@ details b { color: var(--chalk); }
 .navb svg, .ti svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .navb[aria-current="page"] { box-shadow: 0 6px 18px -8px #f2c94caa; background: var(--mark); color: var(--on-mark); border-color: var(--mark); }
 .view[hidden] { display: none !important; }
-#view-hub, #view-tool { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 18px; }
+#view-hub, #view-tool, #view-voices { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 18px; }
 .hero { background: radial-gradient(120% 140% at 0% 0%, #24453b, #161d1b 62%); border: 1px solid #ffffff14; border-radius: 24px; padding: 28px 22px; box-shadow: 0 30px 80px -40px #000, inset 0 1px 0 #ffffff10; display: grid; gap: 10px; }
 .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mark); }
 .hero h2 { font: 400 clamp(32px, 8vw, 52px)/1.02 var(--serif); letter-spacing: -0.01em; } .hero h2 em { color: var(--mark); }
@@ -269,7 +269,7 @@ details b { color: var(--chalk); }
   <h1>Teacher<span>AI</span> Lite</h1>
   <p>Type a topic or paste notes. AI writes a slow, clear whiteboard lesson and a teacher reads it to you. If AI is not available, a built-in engine builds the lesson from your notes.</p>
 </header>
-<nav class="nav" aria-label="Study tools"><div class="nav-in"><button type="button" class="navb" data-view="hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Home</span></button><button type="button" class="navb" data-view="lesson"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg><span>Lesson</span></button><button type="button" class="navb" data-view="podcast"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Podcast</span></button><button type="button" class="navb" data-view="study-guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg><span>Study guide</span></button><button type="button" class="navb" data-view="cheat-sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg><span>Cheat sheet</span></button><button type="button" class="navb" data-view="flashcards"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg><span>Flashcards</span></button><button type="button" class="navb" data-view="quiz"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg><span>Quiz</span></button><button type="button" class="navb" data-view="exam"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Exam predictor</span></button><button type="button" class="navb" data-view="solver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg><span>Solver</span></button></div></nav>
+<nav class="nav" aria-label="Study tools"><div class="nav-in"><button type="button" class="navb" data-view="hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Home</span></button><button type="button" class="navb" data-view="lesson"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg><span>Lesson</span></button><button type="button" class="navb" data-view="podcast"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Podcast</span></button><button type="button" class="navb" data-view="voices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span>Voices</span></button><button type="button" class="navb" data-view="study-guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg><span>Study guide</span></button><button type="button" class="navb" data-view="cheat-sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg><span>Cheat sheet</span></button><button type="button" class="navb" data-view="flashcards"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg><span>Flashcards</span></button><button type="button" class="navb" data-view="quiz"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg><span>Quiz</span></button><button type="button" class="navb" data-view="exam"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Exam predictor</span></button><button type="button" class="navb" data-view="solver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg><span>Solver</span></button></div></nav>
 
 <main class="app view" id="view-lesson">
   <section class="player" aria-label="Lesson player">
@@ -415,9 +415,15 @@ details b { color: var(--chalk); }
     <p class="hint voicelink" id="voiceLink"></p>
   </div>
   <h3 class="sec-h">Quick tools</h3>
-  <div class="tools-grid"><button type="button" class="tool" data-view="lesson"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg></span><span class="tt">Lesson video</span><span class="ts">A teacher draws and explains it</span></button><button type="button" class="tool" data-view="podcast"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="tt">Podcast</span><span class="ts">LAW and MONKEY talk it through</span></button><button type="button" class="tool" data-view="study-guide"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg></span><span class="tt">Study guide</span><span class="ts">Summarized with clarity</span></button><button type="button" class="tool" data-view="cheat-sheet"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg></span><span class="tt">Cheat sheet</span><span class="ts">One page to crack the exam</span></button><button type="button" class="tool" data-view="flashcards"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg></span><span class="tt">Flashcards</span><span class="ts">Flip to memorize</span></button><button type="button" class="tool" data-view="quiz"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg></span><span class="tt">Quiz</span><span class="ts">Practice until it sticks</span></button><button type="button" class="tool" data-view="exam"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="tt">Exam predictor</span><span class="ts">Study what matters most</span></button><button type="button" class="tool" data-view="solver"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg></span><span class="tt">Solver</span><span class="ts">Step-by-step answers</span></button></div>
+  <div class="tools-grid"><button type="button" class="tool" data-view="lesson"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg></span><span class="tt">Lesson video</span><span class="ts">A teacher draws and explains it</span></button><button type="button" class="tool" data-view="podcast"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="tt">Podcast</span><span class="ts">LAW and MONKEY talk it through</span></button><button type="button" class="tool" data-view="study-guide"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg></span><span class="tt">Study guide</span><span class="ts">Summarized with clarity</span></button><button type="button" class="tool" data-view="cheat-sheet"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg></span><span class="tt">Cheat sheet</span><span class="ts">One page to crack the exam</span></button><button type="button" class="tool" data-view="flashcards"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg></span><span class="tt">Flashcards</span><span class="ts">Flip to memorize</span></button><button type="button" class="tool" data-view="quiz"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg></span><span class="tt">Quiz</span><span class="ts">Practice until it sticks</span></button><button type="button" class="tool" data-view="exam"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="tt">Exam predictor</span><span class="ts">Study what matters most</span></button><button type="button" class="tool" data-view="voices"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></span><span class="tt">Voices</span><span class="ts">Natural, Microsoft, ElevenLabs</span></button><button type="button" class="tool" data-view="solver"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg></span><span class="tt">Solver</span><span class="ts">Step-by-step answers</span></button></div>
   <h3 class="sec-h">Recent study sets</h3>
   <ul class="recent" id="recent"></ul>
+</section>
+<section class="view" id="view-voices" hidden>
+  <div class="tool-head"><span class="ti big" id="voicesIcon"></span><div><h2>Voices</h2><p class="hint">Choose how your teacher and your two podcast hosts sound.</p></div></div>
+  <div id="picksHost"></div>
+  <div id="voicesCards" class="tool-out"></div>
+  <div class="card" id="premiumClaude" hidden><h3 class="sec-h">Premium voices</h3><p class="hint">Microsoft and ElevenLabs voices, and the natural AI voices, play in the website version. Pages inside Claude cannot call those services.</p><a class="btn primary" href="https://luffs764.github.io/#voices" target="_blank" rel="noopener">Open the website version</a></div>
 </section>
 <section class="view" id="view-tool" hidden>
   <div class="tool-head">
@@ -1495,13 +1501,13 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") $("#next").click();
   if (e.key === "ArrowLeft") $("#prev").click();
 });
-// premium cloud voice keys (saved copy only)
+// premium cloud voice keys (saved copy only), shown in the Voices tab
 {
+  if (window.claude) $("#premiumClaude").hidden = false; else $("#voicesCards").appendChild($("#cloudBox"));
   const c = Cloud.cfg(); $("#azKey").value = c.azKey; $("#azRegion").value = c.azRegion; $("#elKey").value = c.elKey; $("#elCustom").value = c.elCustom;
   const sync = () => { store.set("cloud", { azKey: $("#azKey").value, azRegion: $("#azRegion").value, elKey: $("#elKey").value, elCustom: $("#elCustom").value }); Natural.clips.clear(); fillVoiceSelect(); };
   ["azKey", "azRegion", "elKey", "elCustom"].forEach((id) => $("#" + id).addEventListener("change", sync));
-  if (window.claude) $("#cloudBox").hidden = true;
-}
+  }
 // own-key settings (only for the saved copy; inside Claude the page cannot call other sites)
 {
   const k = keyCfg();
@@ -1607,10 +1613,7 @@ function builtinTool(kind, text) {
 
 function renderTool(kind, d) {
   const out = $("#toolOut");
-  if (!d && kind === "podcast") { out.innerHTML = `<div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
-      <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
-      <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
-      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : `<button type="button" class="btn primary" id="getPremium">Add Microsoft or ElevenLabs voices</button>`}</div>`; wirePicks(); return; }
+  if (!d && kind === "podcast") { out.innerHTML = `<div class="card"><h3 class="sec-h">Voices</h3><p class="hint">LAW and MONKEY each get their own voice. Choose and preview them, and add premium Microsoft or ElevenLabs voices.</p><button type="button" class="btn primary" id="getPicks">Choose the 2 voices</button></div>`; const gpk = $("#getPicks"); if (gpk) gpk.onclick = () => show("voices"); return; }
   if (!d) { out.innerHTML = ""; return; }
   if (kind === "study-guide") out.innerHTML = `<article class="doc"><h3>${esc(d.title || "Study guide")}</h3><p>${esc(d.overview || "")}</p>${(d.sections || []).map((s) => `<section><h4>${esc(s.heading)}</h4><ul>${(s.points || []).map((p) => `<li>${esc(p)}</li>`).join("")}</ul>${(s.key_terms || []).length ? `<dl class="terms">${s.key_terms.map((t) => `<dt>${esc(t.term)}</dt><dd>${esc(t.definition)}</dd>`).join("")}</dl>` : ""}</section>`).join("")}${d.summary ? `<p><b>Summary:</b> ${esc(d.summary)}</p>` : ""}</article>`;
   else if (kind === "cheat-sheet") {
@@ -1648,16 +1651,13 @@ function renderTool(kind, d) {
       <div class="pctl"><button type="button" class="ib" id="pcPrev" aria-label="Previous line"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button><button type="button" class="ib big" id="pcPlay" aria-label="Play"><svg viewBox="0 0 24 24" id="pcIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button><button type="button" class="ib" id="pcNext" aria-label="Next line"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg></button></div>
       <p class="hint" id="pcNote" style="text-align:center">${Voice.claude || Natural.supported ? "LAW and MONKEY each have their own voice." : `Using your device's voices. For natural voices open <a href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">luffs764.github.io</a>.`}</p>
     </div>
-    <div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
-      <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
-      <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
-      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : `<button type="button" class="btn primary" id="getPremium">Add Microsoft or ElevenLabs voices</button>`}</div>
+    <div class="card"><h3 class="sec-h">Voices</h3><p class="hint">LAW and MONKEY each get their own voice. Choose and preview them, and add premium Microsoft or ElevenLabs voices.</p><button type="button" class="btn primary" id="getPicks">Choose the 2 voices</button></div>
     <details class="card transcript"><summary>Transcript</summary><div class="chat">${lines.map((l, k) => `<div class="line ${hostKey(l)}" data-k="${k}"><b>${hostKey(l).toUpperCase()}</b>${esc(l.text)}</div>`).join("")}</div></details>`;
     $("#pcPlay").onclick = () => (pod.playing ? podPause() : podPlay(pod.i));
     $("#pcPrev").onclick = () => podJump(pod.i - 1);
     $("#pcNext").onclick = () => podJump(pod.i + 1);
     out.querySelectorAll(".line").forEach((el) => (el.onclick = () => podJump(+el.dataset.k)));
-    wirePicks(); podPaint();
+    const gpk = $("#getPicks"); if (gpk) gpk.onclick = () => show("voices"); podPaint();
   }
 }
 function toMarkdown(kind, d) {
@@ -1681,7 +1681,13 @@ function refreshPicks() {
   }
   $("#pickNote").textContent = Natural.supported ? "Natural voices run on your device. The first time, about 95 MB downloads." : Voice.claude ? "Claude's voices are on. The natural voices only run in the website version." : "Only your device's voices are available inside Claude here. The natural voices play in the website version.";
 }
-function openPremium() { show("lesson"); const d = $("#cloudBox"); d.open = true; setTimeout(() => d.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }), 60); }
+function openPremium() { show("voices"); const d = $("#cloudBox"); d.open = true; setTimeout(() => d.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" }), 60); }
+function picksHTML() {
+  return `<div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
+      <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
+      <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
+      <p class="hint" id="pickNote"></p></div>`;
+}
 function wirePicks() {
   const gp = $("#getPremium"); if (gp) gp.onclick = openPremium;
   for (const [key, id, pv] of [["law", "#pickLaw", "#pvLaw"], ["monkey", "#pickMonkey", "#pvMonkey"]]) {
@@ -1778,7 +1784,9 @@ function renderRecent() {
 // Views
 function show(view) {
   if (view !== "podcast" && pod.playing) podPause();
-  if (view !== "hub" && view !== "lesson" && !TOOLS[view]) view = "hub";
+  if (view !== "hub" && view !== "lesson" && view !== "voices" && !TOOLS[view]) view = "hub";
+  $("#view-voices").hidden = view !== "voices";
+  if (view === "voices") { $("#picksHost").innerHTML = picksHTML(); wirePicks(); $("#voicesIcon").innerHTML = document.querySelector('.navb[data-view="voices"] svg').outerHTML; }
   $("#view-hub").hidden = view !== "hub"; $("#view-lesson").hidden = view !== "lesson"; $("#view-tool").hidden = !TOOLS[view];
   document.querySelectorAll(".navb").forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
   if (TOOLS[view]) {
