@@ -188,6 +188,10 @@ details b { color: var(--chalk); }
 .transcript summary { cursor: pointer; font: 400 22px/1.2 var(--serif); }
 .transcript .chat { margin-top: 12px; }
 .line { cursor: pointer; }
+.picks { gap: 12px; }
+.pick { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.pick b { font-size: 12px; letter-spacing: 0.16em; }
+.picks a.btn { text-align: center; text-decoration: none; display: grid; place-items: center; }
 @media (prefers-reduced-motion: reduce) { .host.talk .av::before, .host.talk .av::after, .pod.playing .wave i { animation: none; } }
 
 /* ---------- tabs, hub and study tools ---------- */
@@ -396,7 +400,7 @@ details b { color: var(--chalk); }
     <p>Type a topic or paste your notes once. Then turn it into a lesson, a podcast, a guide, a cheat sheet, flashcards, a quiz and an exam forecast.</p>
     <div class="hero-in">
       <textarea id="hubSrc" rows="3" aria-label="Topic or notes" placeholder="Type a topic, like The French Revolution, or paste your notes."></textarea>
-      <button type="button" class="btn primary" id="hubGo">Make a lesson</button>
+      <div class="row-c"><button type="button" class="btn primary" id="hubGo">Make a lesson</button><button type="button" class="btn" id="hubVoices">Pick your 2 voices</button></div>
     </div>
     <p class="hint voicelink" id="voiceLink"></p>
   </div>
@@ -722,7 +726,7 @@ const ICONS = {
    Natural voice: Kokoro-82M running on this device (in a worker), about 95 MB the first time
    ===================================================================== */
 const KOKORO_VOCAB = {";":1,":":2,",":3,".":4,"!":5,"?":6,"—":9,"…":10,"\"":11,"(":12,")":13,"“":14,"”":15," ":16,"̃":17,"ʣ":18,"ʥ":19,"ʦ":20,"ʨ":21,"ᵝ":22,"ꭧ":23,"A":24,"I":25,"O":31,"Q":33,"S":35,"T":36,"W":39,"Y":41,"ᵊ":42,"a":43,"b":44,"c":45,"d":46,"e":47,"f":48,"h":50,"i":51,"j":52,"k":53,"l":54,"m":55,"n":56,"o":57,"p":58,"q":59,"r":60,"s":61,"t":62,"u":63,"v":64,"w":65,"x":66,"y":67,"z":68,"ɑ":69,"ɐ":70,"ɒ":71,"æ":72,"β":75,"ɔ":76,"ɕ":77,"ç":78,"ɖ":80,"ð":81,"ʤ":82,"ə":83,"ɚ":85,"ɛ":86,"ɜ":87,"ɟ":90,"ɡ":92,"ɥ":99,"ɨ":101,"ɪ":102,"ʝ":103,"ɯ":110,"ɰ":111,"ŋ":112,"ɳ":113,"ɲ":114,"ɴ":115,"ø":116,"ɸ":118,"θ":119,"œ":120,"ɹ":123,"ɾ":125,"ɻ":126,"ʁ":128,"ɽ":129,"ʂ":130,"ʃ":131,"ʈ":132,"ʧ":133,"ʊ":135,"ʋ":136,"ʌ":138,"ɣ":139,"ɤ":140,"χ":142,"ʎ":143,"ʒ":147,"ʔ":148,"ˈ":156,"ˌ":157,"ː":158,"ʰ":162,"ʲ":164,"↓":169,"→":171,"↗":172,"↘":173,"ᵻ":177};
-const NATURAL = [["af_heart", "Heart", "female"], ["am_michael", "Michael", "male"], ["af_bella", "Bella", "female"], ["am_fenrir", "Fenrir", "male"]];
+const NATURAL = [["af_heart", "Heart", "female"], ["af_bella", "Bella", "female"], ["af_nicole", "Nicole", "female"], ["af_sarah", "Sarah", "female"], ["af_sky", "Sky", "female"], ["bf_emma", "Emma", "British female"], ["am_michael", "Michael", "male"], ["am_fenrir", "Fenrir", "male"], ["am_puck", "Puck", "male"], ["am_adam", "Adam", "male"], ["bm_george", "George", "British male"], ["bm_fable", "Fable", "British male"]];
 const MODEL_BYTES = 92361116;
 function wavURL(arrays, rate) {
   const pad = (s) => Math.round(rate * s);
@@ -921,6 +925,31 @@ const CHARACTERS = {
   law: { label: "LAW · calm, deep, measured", claude: "rounded", natural: "am_michael", rate: 0.97, pitch: 1, male: true },
   monkey: { label: "MONKEY · bright, playful, upbeat", claude: "airy", natural: "af_heart", rate: 1.05, pitch: 1, male: false },
 };
+const hostPicks = () => store.get("hosts", {});
+function voiceChoices() {
+  const o = [];
+  if (Natural.supported) for (const [id, name, g] of NATURAL) o.push({ id: "natural:" + id, label: `${name} · natural ${g}` });
+  if (Voice.claude) for (const v of ["rounded", "airy", "buttery", "glassy"]) o.push({ id: "claude:" + v, label: `${cap1(v)} · Claude voice` });
+  let list = [];
+  try { list = (window.speechSynthesis?.getVoices() || []).filter((v) => /^en/i.test(v.lang)); } catch { /* ignore */ }
+  list.sort((a, b) => voiceScore(b) - voiceScore(a));
+  for (const v of list) o.push({ id: "browser:" + v.voiceURI, label: `${v.name} (${v.lang})${voiceScore(v) >= 40 ? " · high quality" : ""}` });
+  if ("speechSynthesis" in window) o.push({ id: "browser:default", label: "This device's voice" });
+  return o;
+}
+// The voice settings for LAW or MONKEY: the pick you made, else the best available.
+function resolveChar(key) {
+  const ch = CHARACTERS[key], pick = hostPicks()[key] || "";
+  const st = { rateMul: ch.rate, pitch: 1, kind: "off", claudeVoice: ch.claude, naturalVoice: ch.natural, browserVoice: null };
+  const dev = (uri) => { st.kind = "browser"; try { st.browserVoice = uri && uri !== "default" ? window.speechSynthesis.getVoices().find((v) => v.voiceURI === uri) || bestDeviceVoice(ch.male) : bestDeviceVoice(ch.male); } catch { /* ignore */ } };
+  if (pick.startsWith("natural:") && Natural.supported) { st.kind = "natural"; st.naturalVoice = pick.slice(8); }
+  else if (pick.startsWith("claude:") && Voice.claude) { st.kind = "claude"; st.claudeVoice = pick.slice(7); }
+  else if (pick.startsWith("browser:") && "speechSynthesis" in window) dev(pick.slice(8));
+  else if (Voice.claude) st.kind = "claude";
+  else if (Natural.supported) st.kind = "natural";
+  else if ("speechSynthesis" in window) dev("");
+  return st;
+}
 const MALE = /daniel|evan|nathan|aaron|alex|tom|guy|ryan|arthur|rishi|oliver|fred|male|david|mark|james|george/i;
 function bestDeviceVoice(male) {
   let list = [];
@@ -942,18 +971,15 @@ function fillVoiceSelect() {
   opts.push({ id: "off", label: "Captions only (no sound)" });
   sel.innerHTML = opts.map((o) => `<option value="${esc(o.id)}"${o.disabled ? " disabled" : ""}>${esc(o.label)}</option>`).join("");
   sel.value = opts.some((o) => o.id === want && !o.disabled) ? want : opts[0].id;
-  applyVoice();
+  applyVoice(); refreshPicks();
 }
 function applyVoice() {
   const id = $("#voice").value;
   Voice.kind = "off"; Voice.browserVoice = null; Voice.rateMul = 1; Voice.pitch = 1;
   const ch = id.startsWith("char:") ? CHARACTERS[id.slice(5)] : null;
   if (ch) {
-    Voice.rateMul = ch.rate; Voice.pitch = ch.pitch;
-    if (Voice.claude) { Voice.kind = "claude"; Voice.claudeVoice = ch.claude; }
-    else if (Natural.supported) { Voice.kind = "natural"; Voice.naturalVoice = ch.natural; }
-    else if ("speechSynthesis" in window) { Voice.kind = "browser"; Voice.browserVoice = bestDeviceVoice(ch.male); }
-    voiceNote(`${ch.label.split(" ·")[0]} uses ${Voice.kind === "claude" ? `Claude's ${ch.claude} voice` : Voice.kind === "natural" ? "a natural voice that runs on your device (about 95 MB the first time)" : Voice.browserVoice ? `your device's ${Voice.browserVoice.name} voice` : "your device's voice"}.${Voice.kind === "browser" && (!Voice.browserVoice || voiceScore(Voice.browserVoice) < 40) ? " For a nicer sound on iPhone, download Ava or Evan (Premium) in Settings, Accessibility, Spoken Content, Voices." : ""}`, false);
+    Object.assign(Voice, resolveChar(id.slice(5)));
+    voiceNote(`${ch.label.split(" ·")[0]} uses ${Voice.kind === "claude" ? `Claude's ${Voice.claudeVoice} voice` : Voice.kind === "natural" ? `the natural ${Voice.naturalVoice.replace(/^[a-z]{2}_/, "")} voice (about 95 MB the first time)` : Voice.browserVoice ? `your device's ${Voice.browserVoice.name} voice` : "your device's voice"}. Change it under Podcast, Pick your 2 voices.`, false);
     return;
   }
   if (id.startsWith("claude:") && Voice.claude) { Voice.kind = "claude"; Voice.claudeVoice = id.slice(7); }
@@ -1527,6 +1553,10 @@ function builtinTool(kind, text) {
 
 function renderTool(kind, d) {
   const out = $("#toolOut");
+  if (!d && kind === "podcast") { out.innerHTML = `<div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
+      <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
+      <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
+      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : ""}</div>`; wirePicks(); return; }
   if (!d) { out.innerHTML = ""; return; }
   if (kind === "study-guide") out.innerHTML = `<article class="doc"><h3>${esc(d.title || "Study guide")}</h3><p>${esc(d.overview || "")}</p>${(d.sections || []).map((s) => `<section><h4>${esc(s.heading)}</h4><ul>${(s.points || []).map((p) => `<li>${esc(p)}</li>`).join("")}</ul>${(s.key_terms || []).length ? `<dl class="terms">${s.key_terms.map((t) => `<dt>${esc(t.term)}</dt><dd>${esc(t.definition)}</dd>`).join("")}</dl>` : ""}</section>`).join("")}${d.summary ? `<p><b>Summary:</b> ${esc(d.summary)}</p>` : ""}</article>`;
   else if (kind === "cheat-sheet") {
@@ -1564,12 +1594,16 @@ function renderTool(kind, d) {
       <div class="pctl"><button type="button" class="ib" id="pcPrev" aria-label="Previous line"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button><button type="button" class="ib big" id="pcPlay" aria-label="Play"><svg viewBox="0 0 24 24" id="pcIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button><button type="button" class="ib" id="pcNext" aria-label="Next line"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg></button></div>
       <p class="hint" id="pcNote" style="text-align:center">${Voice.claude || Natural.supported ? "LAW and MONKEY each have their own voice." : `Using your device's voices. For natural voices open <a href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">luffs764.github.io</a>.`}</p>
     </div>
+    <div class="card picks"><h3 class="sec-h">Pick your 2 voices</h3>
+      <div class="pick"><b>LAW</b><select id="pickLaw" aria-label="Voice for LAW"></select><button type="button" class="btn" id="pvLaw">Preview</button></div>
+      <div class="pick"><b>MONKEY</b><select id="pickMonkey" aria-label="Voice for MONKEY"></select><button type="button" class="btn" id="pvMonkey">Preview</button></div>
+      <p class="hint" id="pickNote"></p>${window.claude ? `<a class="btn primary" href="https://luffs764.github.io/#podcast" target="_blank" rel="noopener">Open the natural-voice version</a>` : ""}</div>
     <details class="card transcript"><summary>Transcript</summary><div class="chat">${lines.map((l, k) => `<div class="line ${hostKey(l)}" data-k="${k}"><b>${hostKey(l).toUpperCase()}</b>${esc(l.text)}</div>`).join("")}</div></details>`;
     $("#pcPlay").onclick = () => (pod.playing ? podPause() : podPlay(pod.i));
     $("#pcPrev").onclick = () => podJump(pod.i - 1);
     $("#pcNext").onclick = () => podJump(pod.i + 1);
     out.querySelectorAll(".line").forEach((el) => (el.onclick = () => podJump(+el.dataset.k)));
-    podPaint();
+    wirePicks(); podPaint();
   }
 }
 function toMarkdown(kind, d) {
@@ -1584,10 +1618,31 @@ function toMarkdown(kind, d) {
 }
 
 // Podcast playback with the two host voices
-function charState(key) {
-  const ch = CHARACTERS[key], st = { rateMul: ch.rate, pitch: ch.pitch, kind: "off", claudeVoice: ch.claude, naturalVoice: ch.natural, browserVoice: null };
-  if (Voice.claude) st.kind = "claude"; else if (Natural.supported) st.kind = "natural"; else if ("speechSynthesis" in window) { st.kind = "browser"; st.browserVoice = bestDeviceVoice(ch.male); }
-  return st;
+function refreshPicks() {
+  if (!$("#pickLaw")) return;
+  const ch = voiceChoices(), picks = hostPicks();
+  for (const [key, id] of [["law", "#pickLaw"], ["monkey", "#pickMonkey"]]) {
+    const sel = $(id); sel.innerHTML = `<option value="">Auto (best available)</option>` + ch.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
+    sel.value = ch.some((o) => o.id === picks[key]) ? picks[key] : "";
+  }
+  $("#pickNote").textContent = Natural.supported ? "Natural voices run on your device. The first time, about 95 MB downloads." : Voice.claude ? "Claude's voices are on. The natural voices only run in the website version." : "Only your device's voices are available inside Claude here. The natural voices play in the website version.";
+}
+function wirePicks() {
+  for (const [key, id, pv] of [["law", "#pickLaw", "#pvLaw"], ["monkey", "#pickMonkey", "#pvMonkey"]]) {
+    $(id).onchange = (e) => { const p = hostPicks(); if (e.target.value) p[key] = e.target.value; else delete p[key]; store.set("hosts", p); };
+    $(pv).onclick = () => previewHost(key);
+  }
+  refreshPicks();
+}
+async function previewHost(key) {
+  podPause(); if (S.playing) pause();
+  const st = resolveChar(key); if (st.kind === "natural") Natural.unlock();
+  const saved = { kind: Voice.kind, claudeVoice: Voice.claudeVoice, naturalVoice: Voice.naturalVoice, browserVoice: Voice.browserVoice, rateMul: Voice.rateMul, pitch: Voice.pitch };
+  Object.assign(Voice, st); const n = $("#pickNote"); n.textContent = st.kind === "natural" ? "Getting the voice ready… (the first time takes a minute)" : "Playing a preview…";
+  Natural.onProgress = (pct) => { n.textContent = `Downloading the natural voice: ${pct}%…`; };
+  try { if (st.kind === "off") n.textContent = "No voice is available in this view."; else { await Voice.speak(key === "law" ? "Hi, I'm LAW. Let's break this down step by step." : "Hey, I'm MONKEY! Okay, I have so many questions.", S.rate); n.textContent = "That's how it sounds. Pick another to compare."; } }
+  catch (e) { n.textContent = `That voice could not play here (${e?.message || "error"}). Pick another.`; }
+  Object.assign(Voice, saved);
 }
 const pod = { d: null, i: 0, playing: false, gen: 0 };
 const hostKey = (l) => (String(l.speaker).toUpperCase() === "MONKEY" ? "monkey" : "law");
@@ -1607,11 +1662,7 @@ function podPaint() {
 function podPause() { pod.gen++; pod.playing = false; Voice.cancel(); podPaint(); }
 function stopPodcast() { podPause(); }
 function podJump(i) { const n = pod.d?.lines?.length || 0; if (!n) return; const was = pod.playing; podPause(); pod.i = clamp(i, 0, n - 1); podPaint(); if (was) podPlay(pod.i); }
-function charState(key) {
-  const ch = CHARACTERS[key], st = { rateMul: ch.rate, pitch: ch.pitch, kind: "off", claudeVoice: ch.claude, naturalVoice: ch.natural, browserVoice: null };
-  if (Voice.claude) st.kind = "claude"; else if (Natural.supported) st.kind = "natural"; else if ("speechSynthesis" in window) { st.kind = "browser"; st.browserVoice = bestDeviceVoice(ch.male); }
-  return st;
-}
+const charState = resolveChar;
 async function podPlay(from) {
   const lines = pod.d?.lines || []; if (!lines.length) return;
   podPause(); const my = ++pod.gen; pod.playing = true; if (S.playing) pause();
@@ -1691,9 +1742,10 @@ $("#toolGo").addEventListener("click", generateTool);
 $("#toolStop").addEventListener("click", () => toolCtl?.abort());
 $("#toolCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(toMarkdown(toolView, OUT[toolView])); $("#toolStatus").textContent = "Copied."; } catch { $("#toolStatus").textContent = "Copying is blocked here. Use Save instead."; } });
 $("#toolSave").addEventListener("click", () => saveFile(`${toolView}-${slug()}.md`, toMarkdown(toolView, OUT[toolView])));
+$("#hubVoices").addEventListener("click", () => show("podcast"));
 $("#hubGo").addEventListener("click", () => { const v = $("#hubSrc").value.trim(); if (v) { $("#src").value = v; srcHint(); } show("lesson"); if (v) make(); });
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
-$("#voiceLink").innerHTML = window.claude ? `Want natural, human-sounding voices on your phone? Open <a href="https://luffs764.github.io" target="_blank" rel="noopener">luffs764.github.io</a> in Safari.` : "";
+$("#voiceLink").innerHTML = window.claude ? `The natural, human-sounding voices play on your website: <a href="https://luffs764.github.io" target="_blank" rel="noopener">open luffs764.github.io</a> in Safari.` : "";
 show(location.hash.slice(1) || "hub");
 })();
 </script>
