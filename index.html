@@ -127,6 +127,8 @@ input[type=range] { width: 100%; accent-color: var(--mark); }
 .tab[aria-selected=true] { background: var(--panel); color: var(--chalk); box-shadow: 0 0 0 1px var(--mark) inset; }
 .mk { display: flex; gap: 8px; }
 .ai-setup { border-color: #f2c94c66; gap: 8px; }
+.steps { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.steps a { color: var(--mark); }
 .voicebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .hint.err { color: var(--danger); }
 .status { min-height: 22px; font-size: 14px; color: var(--mute); }
@@ -364,9 +366,14 @@ details b { color: var(--chalk); }
       <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><button type="button" class="btn" id="premiumBtn">Add premium voices</button><span class="hint" id="voiceNote"></span></div>
       <p class="hint" id="cvNote"></p>
       <div class="card ai-setup" id="aiSetup" hidden>
-        <b>Turn on AI (Sonnet, then Grok)</b>
-        <p class="hint">Paste your Vercel key, or your whole setup link, or a Claude, Grok or Fish Audio key. It is saved only on this device.</p>
-        <div class="ask"><input type="text" id="aiPaste" aria-label="Key or setup link" placeholder="vck_… or https://luffs764.github.io/#setup…" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn primary" id="aiPasteGo">Save</button></div>
+        <b>Turn on AI (Sonnet, then Grok) and the Fish voices</b>
+        <p class="hint">Vercel and Fish Audio only answer a server, not a web page, so AI runs through your own free relay on Vercel. Paste your relay address (https://….vercel.app) here, or open that address directly.</p>
+        <details><summary class="hint"><b>How to turn on AI (3 minutes, once)</b></summary><ol class="hint steps">
+          <li>Open <a href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a> and import the GitHub repository <b>Luffs764.github.io</b>.</li>
+          <li>Before deploying, open <b>Environment Variables</b> and add <b>AI_GATEWAY_API_KEY</b> (your vck_ key) and <b>FISH_API_KEY</b> (your sk-fish- key).</li>
+          <li>Tap <b>Deploy</b>. When it finishes, open the address it shows (it ends in .vercel.app) and add it to your Home Screen.</li>
+          <li>That address has AI and the Fish voices. Your keys stay in Vercel, not in the page.</li></ol></details>
+        <div class="ask"><input type="text" id="aiPaste" aria-label="Key or setup link" placeholder="https://….vercel.app" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn primary" id="aiPasteGo">Save</button></div>
         <button type="button" class="btn" id="aiPasteClip">Paste from clipboard</button>
       </div>
       <div class="mk"><button class="btn primary" type="submit" id="make">Make lesson</button><button type="button" class="btn" id="stop" hidden>Stop</button></div>
@@ -873,6 +880,50 @@ const Natural = {
 const isCloud = (id) => /^(azure|eleven|fish):/.test(id || "");
 const AZURE = [["en-US-AriaNeural", "Aria", "female"], ["en-US-JennyNeural", "Jenny", "female"], ["en-US-AvaMultilingualNeural", "Ava", "female"], ["en-US-EmmaMultilingualNeural", "Emma", "female"], ["en-GB-SoniaNeural", "Sonia", "British female"], ["en-US-GuyNeural", "Guy", "male"], ["en-US-AndrewMultilingualNeural", "Andrew", "male"], ["en-US-BrianMultilingualNeural", "Brian", "male"], ["en-GB-RyanNeural", "Ryan", "British male"]];
 const ELEVEN = [["21m00Tcm4TlvDq8ikWAM", "Rachel", "female"], ["EXAVITQu4vr4xnSDxMaL", "Bella", "female"], ["MF3mGyEYCl7XYWbV9V6O", "Elli", "female"], ["pNInz6obpgDQGcFmaJgB", "Adam", "male"], ["TxGEqnHWrfWFTfGW9XjX", "Josh", "male"], ["ErXwobaYiN019PkySvjV", "Antoni", "male"]];
+// Your private relay (Vercel Functions in the website's repository). It keeps your keys in Vercel's settings and calls
+// AI Gateway and Fish Audio for this page, because those services refuse calls made straight from a web page.
+const Server = {
+  base: null, ai: false, tts: {}, ready: null,
+  detect() {
+    if (this.ready) return this.ready;
+    this.ready = (async () => {
+      await null;
+      if (window.claude) return;
+      const cands = [];
+      if (/^https?:$/.test(location.protocol)) cands.push(location.origin);
+      const saved = String(store.get("server", "") || "").trim().replace(/\/+$/, "");
+      if (saved && !cands.includes(saved)) cands.push(saved);
+      for (const b of cands) {
+        try {
+          const r = await fetch(b + "/api/health", { cache: "no-store" });
+          if (!r.ok) continue;
+          const j = await r.json();
+          if (j && j.teacherai) { this.base = b; this.ai = !!j.ai; this.tts = j.tts || {}; break; }
+        } catch { /* not a relay */ }
+      }
+      updateAiNote(); fillVoiceSelect();
+    })();
+    return this.ready;
+  },
+  reset() { this.ready = null; this.base = null; this.ai = false; this.tts = {}; return this.detect(); },
+  headers() { const p = store.get("serverPass", ""); return { "content-type": "application/json", ...(p ? { "x-app-password": p } : {}) }; },
+  async chat(prompt, signal) {
+    let r;
+    try { r = await fetch(this.base + "/api/ai", { method: "POST", headers: this.headers(), body: JSON.stringify({ prompt }), signal }); }
+    catch (e) { if (e?.name === "AbortError") throw e; throw new Error("Could not reach your relay. Check your connection."); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || `Your relay answered ${r.status}.`);
+    AI.by = j.model ? prettyModel(j.model) : "your relay";
+    return j.text || "";
+  },
+  async speak(provider, voice, text, speed) {
+    let r;
+    try { r = await fetch(this.base + "/api/tts", { method: "POST", headers: this.headers(), body: JSON.stringify({ provider, voice, text, speed }) }); }
+    catch { throw new Error("could not reach your relay"); }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || `your relay answered ${r.status}`); }
+    return { url: URL.createObjectURL(new Blob([await r.arrayBuffer()], { type: "audio/mpeg" })), duration: 0 };
+  },
+};
 const NAMES = { azure: "Microsoft", eleven: "ElevenLabs", fish: "Fish Audio" };
 // Fish Audio studio voices (curated by Fish Audio partners): Adrian, a deep steady narrator; Nova, a natural conversational voice.
 const FISH = [["bf322df2096a46f18c579d0baa36f41d", "Adrian", "male narrator"], ["a5aafcd92cee4a7db52ee34c82fedcab", "Nova", "female, conversational"]];
@@ -882,13 +933,15 @@ const Cloud = {
   choices() {
     const c = this.cfg(), o = [];
     if (window.claude) return o;
-    if (c.fishKey.trim()) { for (const [id, name, g] of FISH) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio ${g}` }); for (const [id, name] of this.fishList()) if (!FISH.some((f) => f[0] === id)) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio` }); }
-    if (c.elKey.trim()) { for (const [id, name, g] of ELEVEN) o.push({ id: "natural:eleven:" + id, label: `${name} · ElevenLabs ${g}` }); if (c.elCustom.trim()) o.push({ id: "natural:eleven:" + c.elCustom.trim(), label: "Your custom ElevenLabs voice" }); }
-    if (c.azKey.trim()) for (const [id, name, g] of AZURE) o.push({ id: "natural:azure:" + id, label: `${name} · Microsoft neural ${g}` });
+    const srv = Server.tts || {};
+    if (c.fishKey.trim() || srv.fish) { for (const [id, name, g] of FISH) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio ${g}` }); for (const [id, name] of this.fishList()) if (!FISH.some((f) => f[0] === id)) o.push({ id: "natural:fish:" + id, label: `${name} · Fish Audio` }); }
+    if (c.elKey.trim() || srv.eleven) { for (const [id, name, g] of ELEVEN) o.push({ id: "natural:eleven:" + id, label: `${name} · ElevenLabs ${g}` }); if (c.elCustom.trim()) o.push({ id: "natural:eleven:" + c.elCustom.trim(), label: "Your custom ElevenLabs voice" }); }
+    if (c.azKey.trim() || srv.azure) for (const [id, name, g] of AZURE) o.push({ id: "natural:azure:" + id, label: `${name} · Microsoft neural ${g}` });
     return o;
   },
   async clip(text, voiceId, speed) {
     const c = this.cfg(), [prov, id] = [voiceId.split(":")[0], voiceId.slice(voiceId.indexOf(":") + 1)];
+    if (Server.base && Server.tts[prov]) return Server.speak(prov, id, text, speed);
     let r;
     try {
       if (prov === "azure") {
@@ -903,7 +956,7 @@ const Cloud = {
       } else {
         r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(id)}?output_format=mp3_44100_128`, { method: "POST", headers: { "xi-api-key": c.elKey.trim(), "Content-Type": "application/json", Accept: "audio/mpeg" }, body: JSON.stringify({ text, model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.5, similarity_boost: 0.8 } }) });
       }
-    } catch { throw new Error(`could not reach ${NAMES[prov]} (check the key, the voice ID and your connection)`); }
+    } catch { throw new Error(`${NAMES[prov]} does not accept calls straight from a web page. Open your relay site (the .vercel.app address) to use this voice`); }
     if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? `the ${NAMES[prov]} key was rejected` : r.status === 429 ? "the free monthly allowance or rate limit was reached" : `${NAMES[prov]} answered ${r.status}`);
     return { url: URL.createObjectURL(new Blob([await r.arrayBuffer()], { type: "audio/mpeg" })), duration: 0 };
   },
@@ -1019,7 +1072,7 @@ function resolveChar(key) {
   else if (pick.startsWith("claude:") && Voice.claude) { st.kind = "claude"; st.claudeVoice = pick.slice(7); }
   else if (pick.startsWith("browser:") && "speechSynthesis" in window) dev(pick.slice(8));
   else if (Voice.claude) st.kind = "claude";
-  else if (Natural.supported && Cloud.cfg().fishKey.trim()) { st.kind = "natural"; st.naturalVoice = "fish:" + ch.fish; }
+  else if (Natural.supported && (Cloud.cfg().fishKey.trim() || Server.tts.fish)) { st.kind = "natural"; st.naturalVoice = "fish:" + ch.fish; }
   else if (Natural.supported) st.kind = "natural";
   else if ("speechSynthesis" in window) dev("");
   return st;
@@ -1287,14 +1340,14 @@ function readHTML(text) {
 
 /* ---------- AI (Claude inside this page, or your own key in the saved copy) ---------- */
 const AI = { sample: null, ready: null, by: "" };
-AI.ready = cap("sample").then((x) => { AI.sample = x; updateAiNote(); });
+AI.ready = Promise.all([cap("sample").then((x) => { AI.sample = x; updateAiNote(); }), Server.detect()]);
 const keyCfg = () => ({ provider: "anthropic", key: "", model: "", base: "", ...store.get("ai", {}) });
 const keyUsable = () => !window.claude && !!keyCfg().key.trim() && (keyCfg().provider !== "custom" || !!keyCfg().base.trim());
-const aiAvailable = () => !!AI.sample || keyUsable();
+const aiAvailable = () => !!AI.sample || Server.ai || keyUsable();
 function updateAiNote() {
   const k = keyCfg(); const el = $("#aiNote");
-  const setup = document.getElementById("aiSetup"); if (setup) setup.hidden = !!window.claude || keyUsable();
-  el.textContent = AI.sample ? "AI: Claude writes your lessons (it uses your own Claude usage)." : keyUsable() ? (k.provider === "vercel" ? "AI is on: Claude Sonnet writes your lessons through your Vercel key, with Grok as the backup." : `AI: your ${k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : "own"} key writes your lessons.`) : (window.claude ? "AI is not available in this view, so lessons use the built-in engine and need pasted notes." : "AI is not set up on this device yet. Paste your Vercel key or setup link in the box above.");
+  const setup = document.getElementById("aiSetup"); if (setup) setup.hidden = !!window.claude || Server.ai;
+  el.textContent = AI.sample ? "AI: Claude writes your lessons (it uses your own Claude usage)." : Server.ai ? "AI is on: Claude Sonnet writes your lessons through your private relay, with Grok as the backup." : keyUsable() ? (k.provider === "vercel" ? "AI is on: Claude Sonnet writes your lessons through your Vercel key, with Grok as the backup." : `AI: your ${k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : "own"} key writes your lessons.`) : (window.claude ? "AI is not available in this view, so lessons use the built-in engine and need pasted notes." : "AI is not set up on this device yet. Paste your Vercel key or setup link in the box above.");
 }
 const SAMPLE_MSG = { not_granted: "You did not allow this page to use Claude.", sampling_disabled: "Claude is not available on this account.", rate_limited: "Claude's usage limit was reached. Try again later.", refused: "Claude declined that request.", invalid_json: "Claude's answer was not in the right format.", empty_completion: "Claude sent back nothing.", upstream_error: "Claude had a connection problem.", prompt_too_large: "That text is too long for the AI." };
 const errMsg = (e) => SAMPLE_MSG[e?.code] || e?.message || "The AI did not answer.";
@@ -1329,7 +1382,7 @@ async function keyChat(k, prompt, signal) {
     for (const model of models) {
       let r;
       try { r = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", { method: "POST", signal, headers: { "content-type": "application/json", authorization: "Bearer " + k.key.trim() }, body: JSON.stringify({ model, max_tokens: 12000, messages: [{ role: "user", content: prompt }] }) }); }
-      catch (e) { if (e?.name === "AbortError") throw e; throw new Error("Could not reach Vercel from this page. Check your internet connection. If it keeps happening, Vercel may be blocking calls from web pages."); }
+      catch (e) { if (e?.name === "AbortError") throw e; throw new Error("Vercel does not accept calls straight from a web page. Set up your relay (see How to turn on AI) and open its .vercel.app address."); }
       if (r.ok) { const d = await r.json(); AI.by = `${prettyModel(model)} (Vercel)`; return d.choices?.[0]?.message?.content || ""; }
       if (r.status === 401 || r.status === 403) throw new Error("Vercel rejected the key. Make a new key in Vercel and paste it again.");
       last = `${prettyModel(model)} answered ${r.status}`;
@@ -1361,6 +1414,10 @@ async function aiCall(prompt, { json, tier, onText, signal, cache } = {}) {
       AI.by = "Claude";
       return json ? await AI.sample.json(prompt, opts) : (await AI.sample(prompt, opts)).text.trim();
     } catch (e) { if (e?.code === "cancelled") throw e; errs.push(errMsg(e)); }
+  }
+  if (Server.ai) {
+    try { const t = await Server.chat(prompt, signal); return json ? parseLoose(t) : t.trim(); }
+    catch (e) { if (e?.name === "AbortError") throw Object.assign(e, { code: "cancelled" }); errs.push(e.message); }
   }
   if (keyUsable()) {
     try { const k = keyCfg(); AI.by = k.provider === "xai" ? "Grok" : k.provider === "anthropic" ? "Claude" : k.provider === "vercel" ? "Vercel AI Gateway" : "your AI"; const t = await keyChat(k, prompt, signal); return json ? parseLoose(t) : t.trim(); }
@@ -1877,6 +1934,8 @@ function applySetup(text) {
     else { store.set("ai", { ...keyCfg(), provider: prov, key, model: prov === keyCfg().provider ? keyCfg().model : "" }); vercelPick = null; saved.push({ vercel: "Vercel AI", anthropic: "Claude", xai: "Grok" }[prov]); }
   };
   const find = (re) => (text.match(re) || [])[0];
+  const relay = find(/https:\/\/[a-z0-9.-]+\.vercel\.app/i);
+  if (relay) { store.set("server", relay.toLowerCase()); saved.push("your relay"); Server.reset().then(() => { updateAiNote(); fillVoiceSelect(); say(Server.base ? (Server.ai ? "Your relay is connected. AI and the Fish voices are on. Press Make lesson." : "Your relay is connected, but its AI key is missing. Add AI_GATEWAY_API_KEY in Vercel and redeploy.") : "I could not reach that relay address. Check that it finished deploying.", Server.base ? "ok" : "err"); }); }
   put("vercel", find(/vck_[A-Za-z0-9]{20,}/));
   put("fish", find(/sk-fish-[A-Za-z0-9_-]{20,}/));
   put("anthropic", find(/sk-ant-[A-Za-z0-9_-]{20,}/));
