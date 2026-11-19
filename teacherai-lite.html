@@ -150,6 +150,71 @@ input[type=range] { width: 100%; accent-color: var(--mark); }
 details.card summary { cursor: pointer; font-weight: 800; font-size: 16px; }
 details ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; color: var(--mute); font-size: 14px; }
 details b { color: var(--chalk); }
+
+
+/* ---------- tabs, hub and study tools ---------- */
+.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--ink) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.nav-in { max-width: 1100px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.nav-in::-webkit-scrollbar { display: none; }
+.navb { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--mute); font-weight: 600; font-size: 14px; cursor: pointer; }
+.navb svg, .ti svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.navb[aria-current="page"] { background: var(--mark); color: var(--on-mark); border-color: var(--mark); }
+.view[hidden] { display: none !important; }
+#view-hub, #view-tool { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 18px; }
+.hero { background: radial-gradient(120% 140% at 0% 0%, #23413a, var(--panel) 60%); border: 1px solid var(--line); border-radius: 18px; padding: 22px 18px; display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mark); }
+.hero h2 { font: 800 clamp(24px, 6vw, 36px)/1.1 var(--ui); letter-spacing: -0.02em; }
+.hero p { color: var(--mute); max-width: 60ch; }
+.hero-in { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 700px) { .hero-in { grid-template-columns: 1fr auto; align-items: end; } }
+.voicelink a { color: var(--mark); font-weight: 700; }
+.sec-h { font: 800 17px/1.2 var(--ui); }
+.tools-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.tool { text-align: left; display: grid; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
+.tool:hover { transform: translateY(-2px); border-color: var(--mark); }
+.ti { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #f2c94c22; color: var(--mark); margin-bottom: 4px; }
+.ti.big { width: 48px; height: 48px; } .ti.big svg { width: 24px; height: 24px; }
+.tt { font-weight: 800; font-size: 15px; }
+.ts { font-size: 13px; color: var(--mute); }
+.recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.recent button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
+.recent small { color: var(--mute); }
+.tool-head { display: flex; align-items: center; gap: 12px; }
+.tool-head h2 { font: 800 24px/1.1 var(--ui); }
+.tool-out { display: grid; gap: 12px; }
+.doc { background: #f7f5ee; color: #1d2421; border-radius: 16px; padding: 20px; display: grid; gap: 14px; }
+.doc h3 { font: 800 22px/1.15 var(--ui); } .doc h4 { font: 800 16px/1.2 var(--ui); color: #2c5a4b; }
+.doc ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.doc .terms { display: grid; gap: 6px; } .doc dt { font-weight: 800; } .doc dd { margin: 0 0 4px; color: #44504b; }
+.sheet { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.sheet .blk { border: 1.5px solid #1d242122; border-radius: 12px; padding: 12px; background: #fff; }
+.sheet .blk h4 { margin-bottom: 6px; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+.sheet li { font-size: 14px; }
+.flip { perspective: 1000px; cursor: pointer; border: 0; background: none; padding: 0; width: 100%; }
+.flip-in { position: relative; min-height: 220px; transition: transform 0.5s ease; transform-style: preserve-3d; }
+.flip.on .flip-in { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; display: grid; place-items: center; padding: 22px; border-radius: 18px; backface-visibility: hidden; text-align: center; font-size: 18px; line-height: 1.35; }
+.face.front { background: var(--panel); border: 1px solid var(--line); font: 800 26px/1.2 var(--ui); }
+.face.back { background: #f7f5ee; color: #1d2421; transform: rotateY(180deg); }
+.row-c { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; }
+.q p { font-weight: 700; }
+.opt { text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #0f1513; cursor: pointer; }
+.opt.right { border-color: #5fd39a; background: #5fd39a22; } .opt.wrong { border-color: var(--danger); background: #ff8a8022; }
+.why { font-size: 14px; color: var(--mute); }
+.pred { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 6px; }
+.bar { height: 8px; border-radius: 8px; background: #0f1513; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--mark); border-radius: 8px; }
+.pred-h { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; } .pred-h span { font-variant-numeric: tabular-nums; color: var(--mark); }
+.chat { display: grid; gap: 10px; }
+.line { max-width: 85%; padding: 10px 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+.line b { display: block; font-size: 11px; letter-spacing: 0.1em; color: var(--mute); }
+.line.monkey { justify-self: end; background: #f2c94c1f; border-color: #f2c94c55; }
+.line.now { outline: 2px solid var(--mark); }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 4px; }
+.step b { color: var(--mark); }
+
+@media (prefers-reduced-motion: reduce) { .flip-in, .tool { transition: none; }
+}
 @media (prefers-reduced-motion: reduce) { .w { transition: none; } .wait { animation: none; } }
 </style>
 </head>
@@ -162,8 +227,9 @@ details b { color: var(--chalk); }
   <h1>Teacher<span>AI</span> Lite</h1>
   <p>Type a topic or paste notes. AI writes a slow, clear whiteboard lesson and a teacher reads it to you. If AI is not available, a built-in engine builds the lesson from your notes.</p>
 </header>
+<nav class="nav" aria-label="Study tools"><div class="nav-in"><button type="button" class="navb" data-view="hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Home</span></button><button type="button" class="navb" data-view="lesson"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg><span>Lesson</span></button><button type="button" class="navb" data-view="podcast"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Podcast</span></button><button type="button" class="navb" data-view="study-guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg><span>Study guide</span></button><button type="button" class="navb" data-view="cheat-sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg><span>Cheat sheet</span></button><button type="button" class="navb" data-view="flashcards"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg><span>Flashcards</span></button><button type="button" class="navb" data-view="quiz"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg><span>Quiz</span></button><button type="button" class="navb" data-view="exam"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Exam predictor</span></button><button type="button" class="navb" data-view="solver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg><span>Solver</span></button></div></nav>
 
-<main class="app">
+<main class="app view" id="view-lesson">
   <section class="player" aria-label="Lesson player">
     <div class="stage-wrap">
       <div class="stage" id="stage" data-theme="whiteboard">
@@ -285,6 +351,35 @@ details b { color: var(--chalk); }
     </details>
   </section>
 </main>
+<section class="view" id="view-hub" hidden>
+  <div class="hero">
+    <p class="eyebrow">Your study studio</p>
+    <h2>Learn it faster, remember it longer</h2>
+    <p>Type a topic or paste your notes once. Then turn it into a lesson, a podcast, a guide, a cheat sheet, flashcards, a quiz and an exam forecast.</p>
+    <div class="hero-in">
+      <textarea id="hubSrc" rows="3" aria-label="Topic or notes" placeholder="Type a topic, like The French Revolution, or paste your notes."></textarea>
+      <button type="button" class="btn primary" id="hubGo">Make a lesson</button>
+    </div>
+    <p class="hint voicelink" id="voiceLink"></p>
+  </div>
+  <h3 class="sec-h">Quick tools</h3>
+  <div class="tools-grid"><button type="button" class="tool" data-view="lesson"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5v5l4-2.5z"/><path d="M8 21h8"/></svg></span><span class="tt">Lesson video</span><span class="ts">A teacher draws and explains it</span></button><button type="button" class="tool" data-view="podcast"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="tt">Podcast</span><span class="ts">LAW and MONKEY talk it through</span></button><button type="button" class="tool" data-view="study-guide"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg></span><span class="tt">Study guide</span><span class="ts">Summarized with clarity</span></button><button type="button" class="tool" data-view="cheat-sheet"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="m14 16 1.5 1.5L19 14"/></svg></span><span class="tt">Cheat sheet</span><span class="ts">One page to crack the exam</span></button><button type="button" class="tool" data-view="flashcards"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v11"/></svg></span><span class="tt">Flashcards</span><span class="ts">Flip to memorize</span></button><button type="button" class="tool" data-view="quiz"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></svg></span><span class="tt">Quiz</span><span class="ts">Practice until it sticks</span></button><button type="button" class="tool" data-view="exam"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="tt">Exam predictor</span><span class="ts">Study what matters most</span></button><button type="button" class="tool" data-view="solver"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M7.5 3.5v7M14 5l6 6M20 5l-6 6M4 17h7M14 15h6M14 19h6"/></svg></span><span class="tt">Solver</span><span class="ts">Step-by-step answers</span></button></div>
+  <h3 class="sec-h">Recent study sets</h3>
+  <ul class="recent" id="recent"></ul>
+</section>
+<section class="view" id="view-tool" hidden>
+  <div class="tool-head">
+    <span class="ti big" id="toolIcon"></span>
+    <div><h2 id="toolTitle"></h2><p class="hint" id="toolSub"></p></div>
+  </div>
+  <div class="card tool-src">
+    <label for="toolSrc" id="toolSrcLabel">Topic or notes<textarea id="toolSrc" rows="4" placeholder="Type a topic, or paste your notes."></textarea></label>
+    <div class="mk"><button type="button" class="btn primary" id="toolGo">Generate</button><button type="button" class="btn" id="toolStop" hidden>Stop</button><button type="button" class="btn" id="toolCopy" hidden>Copy</button><button type="button" class="btn" id="toolSave" hidden>Save</button></div>
+    <p class="status" id="toolStatus" role="status" aria-live="polite"></p>
+  </div>
+  <div id="toolOut" class="tool-out"></div>
+</section>
+
 
 <script type="text/plain" id="kokoro-worker">
 // TeacherAI natural voice worker: Kokoro-82M (Apache-2.0) on ONNX Runtime Web; phonemes from eSpeak NG via phonemizer.js.
@@ -1284,7 +1379,7 @@ $("#copyScript").addEventListener("click", async () => {
   catch { say("Copying is blocked here. Select the text in the lesson script below instead.", "err"); }
 });
 document.addEventListener("keydown", (e) => {
-  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !L) return;
+  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !L || $("#view-lesson").hidden) return;
   if (e.key === " ") { e.preventDefault(); S.playing ? pause() : play(); }
   if (e.key === "ArrowRight") $("#next").click();
   if (e.key === "ArrowLeft") $("#prev").click();
@@ -1326,6 +1421,205 @@ Voice.init(); initMic(); updateAiNote();
   say("This is an example lesson. Type your own topic and press Make lesson.");
 }
 requestAnimationFrame(frame);
+
+/* =====================================================================
+   Study tools: podcast, study guide, cheat sheet, flashcards, quiz, exam predictor, solver
+   ===================================================================== */
+const TOOLS = {
+  podcast: { title: "Podcast", sub: "LAW and MONKEY talk your topic through.", icon: "podcast" },
+  "study-guide": { title: "Study guide", sub: "Summarized with clarity.", icon: "guide" },
+  "cheat-sheet": { title: "Cheat sheet", sub: "Everything that matters on one page.", icon: "cheat" },
+  flashcards: { title: "Flashcards", sub: "Flip to memorize.", icon: "cards" },
+  quiz: { title: "Quiz", sub: "Practice until it sticks.", icon: "quiz" },
+  exam: { title: "Exam predictor", sub: "What is most likely to come up, and why.", icon: "exam" },
+  solver: { title: "Solver", sub: "Paste a question and get a step-by-step answer.", icon: "solver" },
+};
+const OUT = {}; let toolView = "", toolCtl = null;
+const material = (input) => (wordsOf(input).length < 40 ? `Topic: ${input}\nUse your own knowledge. Be accurate; leave out anything you are unsure of.` : `Use ONLY this material and add nothing that is not in it:\n"""\n${input.slice(0, 60000)}\n"""`);
+const PROMPTS = {
+  podcast: (m) => `Write a lively, friendly two-host study podcast script. Hosts: LAW (calm, clear expert who explains) and MONKEY (curious, playful learner who asks the questions students would ask and gives quick reactions). 16 to 22 lines, alternating mostly, each line 1 to 3 short spoken sentences. Open with MONKEY welcoming listeners, end with a quick recap by LAW. Plain spoken English, no markdown, no stage directions.\n${m}\nReply with ONLY JSON: {"title": string, "lines": [{"speaker": "LAW"|"MONKEY", "text": string}]}`,
+  "study-guide": (m) => `Write a clear study guide.\n${m}\nReply with ONLY JSON: {"title": string, "overview": string (2-3 sentences), "sections": [{"heading": string, "points": [string] (3-5 short points), "key_terms": [{"term": string, "definition": string}]}] (3-6 sections), "summary": string}`,
+  "cheat-sheet": (m) => `Write a dense one-page exam cheat sheet: only the facts, definitions, formulas, dates and rules that earn marks. Very short phrases.\n${m}\nReply with ONLY JSON: {"title": string, "blocks": [{"heading": string, "items": [string]}] (4-8 blocks, 3-6 items each), "formulas": [string], "mnemonics": [string], "mistakes": [string]}`,
+  flashcards: (m) => `Make 16 study flashcards. Front: a term or a short question. Back: a clear answer in one or two sentences.\n${m}\nReply with ONLY JSON: {"cards": [{"front": string, "back": string}]}`,
+  quiz: (m) => `Write a 10-question multiple-choice quiz with 4 choices each, mixing recall and understanding. Wrong choices must be plausible.\n${m}\nReply with ONLY JSON: {"questions": [{"q": string, "choices": [string, string, string, string], "answer": number (0-3), "why": string}]}`,
+  exam: (m) => `Predict the 6 topics most likely to appear on an exam about this, with a likelihood from 0 to 100, the reason, and one sample exam question each.\n${m}\nReply with ONLY JSON: {"predictions": [{"topic": string, "likelihood": number, "why": string, "sample_question": string}]}`,
+  solver: (m) => `Solve this question step by step like a patient tutor. Show each step with a short title and explanation, then the final answer.\nQuestion: ${m}\nReply with ONLY JSON: {"steps": [{"title": string, "detail": string}], "answer": string}`,
+};
+
+// Built-in versions (no AI) made from pasted notes
+function builtinTool(kind, text) {
+  if (kind === "solver") throw new Error("The solver needs AI. It is not available in this view.");
+  if (wordsOf(text).length < 40) throw new Error("AI is not available here, so paste your notes (a few sentences) to use this tool.");
+  const a = analyse(text, ""); if (a.sentences.length < 3) throw new Error("Add a few more sentences of notes.");
+  const sc = (s) => s.stems.reduce((t, k) => t + a.weight(k), 0) / Math.pow(s.words, 0.7);
+  const terms = a.top([...a.tf.keys()], 16).map((k) => ({ k, w: a.word(k) }));
+  const defOf = (k) => (a.sentences.filter((s) => s.stems.includes(k)).sort((x, y) => Number(DEF.test(y.text)) - Number(DEF.test(x.text)) || x.words - y.words)[0] || {}).text || "";
+  const secs = []; for (const s of a.sentences) { let g = secs.find((x) => x.name === s.section); if (!g) secs.push((g = { name: s.section, list: [] })); g.list.push(s); }
+  const best = (list, n) => [...list].sort((x, y) => sc(y) - sc(x)).slice(0, n).sort((x, y) => x.i - y.i).map((s) => s.text);
+  const title = a.title;
+  if (kind === "study-guide") return { title, overview: a.sentences[0].text, sections: secs.map((g) => ({ heading: g.name || title, points: best(g.list, 4), key_terms: a.top(g.list.flatMap((s) => s.stems), 2).map((k) => ({ term: a.word(k), definition: defOf(k) })) })), summary: `Key ideas: ${terms.slice(0, 5).map((t) => t.w.toLowerCase()).join(", ")}.` };
+  if (kind === "cheat-sheet") return { title, blocks: secs.map((g) => ({ heading: g.name || title, items: best(g.list, 4) })), formulas: a.sentences.filter((s) => /=|\d+\s?(%|km|kg|m|s|°)/.test(s.text)).slice(0, 4).map((s) => s.text), mnemonics: [`${terms.slice(0, 4).map((t) => t.w[0]).join("")}: ${terms.slice(0, 4).map((t) => t.w).join(", ")}`], mistakes: [] };
+  if (kind === "flashcards") return { cards: terms.map((t) => ({ front: t.w, back: defOf(t.k) })).filter((c) => c.back).slice(0, 14) };
+  if (kind === "quiz") {
+    const qs = [];
+    for (const t of terms) {
+      const sent = defOf(t.k); if (!sent) continue;
+      const q = sent.replace(/[A-Za-z][A-Za-z'-]*/g, (w) => (stem(w.toLowerCase()) === t.k ? "_____" : w)); if (q === sent) continue;
+      const wrong = terms.filter((x) => x.k !== t.k).sort(() => Math.random() - 0.5).slice(0, 3).map((x) => x.w);
+      const choices = [t.w, ...wrong].sort(() => Math.random() - 0.5);
+      qs.push({ q: `Fill in the blank: ${q}`, choices, answer: choices.indexOf(t.w), why: sent });
+      if (qs.length >= 8) break;
+    }
+    return { questions: qs };
+  }
+  if (kind === "exam") { const max = a.weight(terms[0].k); return { predictions: terms.slice(0, 6).map((t) => ({ topic: t.w, likelihood: Math.round(35 + 60 * (a.weight(t.k) / max)), why: `It comes up ${a.tf.get(t.k)} times in your notes.`, sample_question: `Explain ${t.w.toLowerCase()} and why it matters.` })) }; }
+  if (kind === "podcast") {
+    const lines = [{ speaker: "MONKEY", text: `Welcome back to the study podcast! Today LAW is walking us through ${title}. So, where do we start?` }];
+    for (const g of secs.slice(0, 5)) {
+      const pts = best(g.list, 2); if (!pts.length) continue;
+      lines.push({ speaker: "LAW", text: pts[0] });
+      const k = a.top(g.list.flatMap((s) => s.stems), 1)[0];
+      if (pts[1]) lines.push({ speaker: "MONKEY", text: k ? `Okay, and how does ${a.word(k).toLowerCase()} fit in?` : "Okay, what else should we know?" }, { speaker: "LAW", text: pts[1] });
+      lines.push({ speaker: "MONKEY", text: ["Got it!", "That makes sense.", "Oh, interesting!", "Nice, keep going."][lines.length % 4] });
+    }
+    lines.push({ speaker: "MONKEY", text: "Quick recap before we go?" }, { speaker: "LAW", text: `Remember these: ${terms.slice(0, 4).map((t) => t.w.toLowerCase()).join(", ")}. See you next time.` });
+    return { title, lines };
+  }
+}
+
+function renderTool(kind, d) {
+  const out = $("#toolOut");
+  if (!d) { out.innerHTML = ""; return; }
+  if (kind === "study-guide") out.innerHTML = `<article class="doc"><h3>${esc(d.title || "Study guide")}</h3><p>${esc(d.overview || "")}</p>${(d.sections || []).map((s) => `<section><h4>${esc(s.heading)}</h4><ul>${(s.points || []).map((p) => `<li>${esc(p)}</li>`).join("")}</ul>${(s.key_terms || []).length ? `<dl class="terms">${s.key_terms.map((t) => `<dt>${esc(t.term)}</dt><dd>${esc(t.definition)}</dd>`).join("")}</dl>` : ""}</section>`).join("")}${d.summary ? `<p><b>Summary:</b> ${esc(d.summary)}</p>` : ""}</article>`;
+  else if (kind === "cheat-sheet") {
+    const extra = [["Formulas", d.formulas], ["Memory tricks", d.mnemonics], ["Common mistakes", d.mistakes]].filter(([, v]) => v && v.length);
+    out.innerHTML = `<article class="doc"><h3>${esc(d.title || "Cheat sheet")}</h3><div class="sheet">${[...(d.blocks || []).map((b) => [b.heading, b.items]), ...extra].map(([h, items]) => `<div class="blk"><h4>${esc(h)}</h4><ul>${(items || []).map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>`).join("")}</div></article>`;
+  } else if (kind === "flashcards") {
+    const cards = d.cards || []; let i = d._i || 0; const c = cards[i] || { front: "No cards", back: "" };
+    out.innerHTML = `<button type="button" class="flip" id="flip" aria-label="Flip card"><div class="flip-in"><div class="face front">${esc(c.front)}</div><div class="face back">${esc(c.back)}</div></div></button>
+      <div class="row-c"><button type="button" class="btn" id="fcPrev">Previous</button><span class="hint">Card ${i + 1} of ${cards.length} · tap to flip</span><button type="button" class="btn" id="fcNext">Next</button><button type="button" class="btn" id="fcShuffle">Shuffle</button></div>`;
+    $("#flip").onclick = () => $("#flip").classList.toggle("on");
+    $("#fcPrev").onclick = () => { d._i = (i - 1 + cards.length) % cards.length; renderTool(kind, d); };
+    $("#fcNext").onclick = () => { d._i = (i + 1) % cards.length; renderTool(kind, d); };
+    $("#fcShuffle").onclick = () => { cards.sort(() => Math.random() - 0.5); d._i = 0; renderTool(kind, d); };
+  } else if (kind === "quiz") {
+    const qs = d.questions || []; d._a = d._a || {};
+    const score = Object.entries(d._a).filter(([k, v]) => qs[k] && v === qs[k].answer).length;
+    out.innerHTML = `<p class="hint">Score: <b>${score} / ${qs.length}</b>${Object.keys(d._a).length === qs.length && qs.length ? " · finished" : ""}</p>` + qs.map((q, k) => {
+      const picked = d._a[k];
+      return `<div class="q"><p>${k + 1}. ${esc(q.q)}</p>${(q.choices || []).map((c, j) => `<button type="button" class="opt${picked !== undefined ? (j === q.answer ? " right" : j === picked ? " wrong" : "") : ""}" data-q="${k}" data-c="${j}"${picked !== undefined ? " disabled" : ""}>${esc(c)}</button>`).join("")}${picked !== undefined ? `<p class="why">${esc(q.why || "")}</p>` : ""}</div>`;
+    }).join("") + `<div class="row-c"><button type="button" class="btn" id="qzReset">Try again</button></div>`;
+    out.querySelectorAll(".opt").forEach((b) => (b.onclick = () => { d._a[+b.dataset.q] = +b.dataset.c; renderTool(kind, d); }));
+    $("#qzReset").onclick = () => { d._a = {}; renderTool(kind, d); };
+  } else if (kind === "exam") {
+    out.innerHTML = [...(d.predictions || [])].sort((x, y) => y.likelihood - x.likelihood).map((p) => `<div class="pred"><div class="pred-h">${esc(p.topic)}<span>${Math.round(clamp(+p.likelihood || 0, 0, 100))}%</span></div><div class="bar"><i style="width:${clamp(+p.likelihood || 0, 0, 100)}%"></i></div><p class="why">${esc(p.why || "")}</p><p><b>Practice:</b> ${esc(p.sample_question || "")}</p></div>`).join("");
+  } else if (kind === "solver") {
+    out.innerHTML = (d.steps || []).map((s, k) => `<div class="step"><b>Step ${k + 1}: ${esc(s.title)}</b><span>${esc(s.detail)}</span></div>`).join("") + `<div class="step"><b>Answer</b><span>${esc(d.answer || "")}</span></div>`;
+  } else if (kind === "podcast") {
+    out.innerHTML = `<div class="card"><h3 class="sec-h">${esc(d.title || "Study podcast")}</h3><div class="row-c"><button type="button" class="btn primary" id="pcPlay">Play podcast</button><button type="button" class="btn" id="pcStop">Stop</button></div><p class="hint" id="pcNote">LAW explains, MONKEY asks. ${Voice.claude ? "Voices: Claude's rounded and airy." : Natural.supported ? "Voices: natural Michael and Heart (about 95 MB the first time)." : `Voices: your device's. <a href="https://luffs764.github.io" target="_blank" rel="noopener">Natural voices on your website</a>.`}</p></div><div class="chat">${(d.lines || []).map((l, k) => `<div class="line ${String(l.speaker).toLowerCase() === "monkey" ? "monkey" : "law"}" data-k="${k}"><b>${String(l.speaker).toUpperCase() === "MONKEY" ? "MONKEY" : "LAW"}</b>${esc(l.text)}</div>`).join("")}</div>`;
+    $("#pcPlay").onclick = () => playPodcast(d);
+    $("#pcStop").onclick = stopPodcast;
+  }
+}
+function toMarkdown(kind, d) {
+  if (kind === "study-guide") return `# ${d.title}\n\n${d.overview}\n\n` + d.sections.map((s) => `## ${s.heading}\n${s.points.map((p) => `- ${p}`).join("\n")}\n${(s.key_terms || []).map((t) => `- **${t.term}:** ${t.definition}`).join("\n")}`).join("\n\n") + `\n\n**Summary:** ${d.summary || ""}\n`;
+  if (kind === "cheat-sheet") return `# ${d.title}\n\n` + [...d.blocks.map((b) => [b.heading, b.items]), ["Formulas", d.formulas], ["Memory tricks", d.mnemonics], ["Common mistakes", d.mistakes]].filter(([, v]) => v && v.length).map(([h, v]) => `## ${h}\n${v.map((x) => `- ${x}`).join("\n")}`).join("\n\n") + "\n";
+  if (kind === "flashcards") return d.cards.map((c) => `${c.front}\t${c.back}`).join("\n") + "\n";
+  if (kind === "quiz") return d.questions.map((q, k) => `${k + 1}. ${q.q}\n${q.choices.map((c, j) => `   ${"ABCD"[j]}) ${c}`).join("\n")}\n   Answer: ${"ABCD"[q.answer]} — ${q.why}`).join("\n\n") + "\n";
+  if (kind === "exam") return d.predictions.map((p) => `- **${p.topic}** (${p.likelihood}%): ${p.why}\n  Practice: ${p.sample_question}`).join("\n") + "\n";
+  if (kind === "solver") return d.steps.map((s, k) => `${k + 1}. **${s.title}:** ${s.detail}`).join("\n") + `\n\n**Answer:** ${d.answer}\n`;
+  if (kind === "podcast") return `# ${d.title}\n\n` + d.lines.map((l) => `**${l.speaker}:** ${l.text}`).join("\n\n") + "\n";
+  return "";
+}
+
+// Podcast playback with the two host voices
+function charState(key) {
+  const ch = CHARACTERS[key], st = { rateMul: ch.rate, pitch: ch.pitch, kind: "off", claudeVoice: ch.claude, naturalVoice: ch.natural, browserVoice: null };
+  if (Voice.claude) st.kind = "claude"; else if (Natural.supported) st.kind = "natural"; else if ("speechSynthesis" in window) { st.kind = "browser"; st.browserVoice = bestDeviceVoice(ch.male); }
+  return st;
+}
+let podGen = 0;
+function stopPodcast() { podGen++; Voice.cancel(); document.querySelectorAll(".line.now").forEach((x) => x.classList.remove("now")); }
+async function playPodcast(d) {
+  stopPodcast(); const my = ++podGen; if (S.playing) pause();
+  if (Natural.supported) { Natural.unlock(); Natural.onProgress = (pct) => { const n = $("#pcNote"); if (n) n.textContent = `Downloading the natural voices: ${pct}% (only the first time).`; }; }
+  const lines = d.lines || [];
+  const keyOf = (l) => (String(l.speaker).toUpperCase() === "MONKEY" ? "monkey" : "law");
+  for (let k = 0; k < lines.length; k++) {
+    if (my !== podGen) return;
+    const el = document.querySelector(`.line[data-k="${k}"]`); document.querySelectorAll(".line.now").forEach((x) => x.classList.remove("now")); el?.classList.add("now"); el?.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+    const st = charState(keyOf(lines[k]));
+    if (st.kind === "natural") for (const nx of lines.slice(k + 1, k + 3)) { const s2 = charState(keyOf(nx)); Natural.clip(nx.text, s2.naturalVoice, clamp(S.rate * s2.rateMul, 0.6, 1.3)).catch(() => {}); }
+    const saved = { kind: Voice.kind, claudeVoice: Voice.claudeVoice, naturalVoice: Voice.naturalVoice, browserVoice: Voice.browserVoice, rateMul: Voice.rateMul, pitch: Voice.pitch };
+    Object.assign(Voice, st);
+    try { if (st.kind === "off") await new Promise((r) => setTimeout(r, 2500)); else await Voice.speak(lines[k].text, S.rate); }
+    catch (e) { const n = $("#pcNote"); if (n) n.textContent = `The voice stopped: ${e?.message || "it could not play here"}.`; Object.assign(Voice, saved); return; }
+    Object.assign(Voice, saved);
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  if (my === podGen) document.querySelectorAll(".line.now").forEach((x) => x.classList.remove("now"));
+}
+
+async function generateTool() {
+  const kind = toolView; const input = $("#toolSrc").value.trim();
+  if (!input) { $("#toolStatus").textContent = kind === "solver" ? "Type a question first." : "Type a topic or paste notes first."; return; }
+  if (kind !== "solver") { $("#src").value = input; srcHint(); }
+  const go = $("#toolGo"), st = $("#toolStatus"); go.disabled = true; $("#toolStop").hidden = false; st.className = "status";
+  toolCtl = new AbortController(); let d = null, by = "";
+  try {
+    await AI.ready;
+    if (aiAvailable()) {
+      st.textContent = "Writing it with AI… this can take up to a minute.";
+      try { d = await aiCall(PROMPTS[kind](kind === "solver" ? input : material(input)), { json: true, tier: kind === "flashcards" || kind === "exam" ? "quick" : "default", signal: toolCtl.signal }); by = AI.by; }
+      catch (e) { if (e?.code === "cancelled" || e?.name === "AbortError") { st.textContent = "Stopped."; return; } st.textContent = `${errMsg(e)} Using the built-in engine…`; }
+    }
+    if (!d || typeof d !== "object") d = builtinTool(kind, input);
+    OUT[kind] = d; renderTool(kind, d); showToolActions(true);
+    st.className = "status ok"; st.textContent = by ? `Made with ${by}.` : "Made with the built-in engine from your notes.";
+    rememberSet(input, kind);
+  } catch (e) { st.className = "status err"; st.textContent = e.message || "Something went wrong."; }
+  finally { go.disabled = false; $("#toolStop").hidden = true; toolCtl = null; }
+}
+const showToolActions = (on) => { $("#toolCopy").hidden = !on; $("#toolSave").hidden = !on; };
+
+// Recent study sets (kept in this browser only)
+function rememberSet(input, kind) {
+  const sets = store.get("sets", []).filter((x) => x.src !== input);
+  const title = wordsOf(input).length < 40 ? input.slice(0, 60) : (analyse(input, "").title || input.slice(0, 40));
+  sets.unshift({ src: input.slice(0, 20000), title, kind, at: Date.now() }); store.set("sets", sets.slice(0, 8)); renderRecent();
+}
+function renderRecent() {
+  const sets = store.get("sets", []);
+  $("#recent").innerHTML = sets.length ? sets.map((x, k) => `<li><button type="button" data-k="${k}"><span>${esc(x.title)}</span><small>${esc((TOOLS[x.kind] || { title: "Lesson" }).title)} · ${new Date(x.at).toLocaleDateString()}</small></button></li>`).join("") : `<li class="hint">Nothing yet. Make a lesson or use a quick tool, and your study sets show up here.</li>`;
+  $("#recent").querySelectorAll("button").forEach((b) => (b.onclick = () => { const x = sets[+b.dataset.k]; $("#src").value = x.src; srcHint(); show(x.kind && TOOLS[x.kind] ? x.kind : "lesson"); }));
+}
+
+// Views
+function show(view) {
+  if (view !== "hub" && view !== "lesson" && !TOOLS[view]) view = "hub";
+  $("#view-hub").hidden = view !== "hub"; $("#view-lesson").hidden = view !== "lesson"; $("#view-tool").hidden = !TOOLS[view];
+  document.querySelectorAll(".navb").forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
+  if (TOOLS[view]) {
+    toolView = view; const t = TOOLS[view];
+    $("#toolTitle").textContent = t.title; $("#toolSub").textContent = t.sub;
+    $("#toolIcon").innerHTML = document.querySelector(`.navb[data-view="${view}"] svg`).outerHTML;
+    $("#toolSrcLabel").firstChild.textContent = view === "solver" ? "Your question" : "Topic or notes";
+    if (view !== "solver") $("#toolSrc").value = $("#src").value; else if (!OUT.solver) $("#toolSrc").value = "";
+    $("#toolStatus").textContent = ""; renderTool(view, OUT[view]); showToolActions(!!OUT[view]);
+  }
+  if (view === "hub") { $("#hubSrc").value = $("#src").value === "Photosynthesis" ? "" : $("#src").value; renderRecent(); }
+  try { if (location.hash.slice(1) !== view) history.replaceState(null, "", "#" + view); } catch { /* ignore */ }
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll(".navb, .tool").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
+$("#toolGo").addEventListener("click", generateTool);
+$("#toolStop").addEventListener("click", () => toolCtl?.abort());
+$("#toolCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(toMarkdown(toolView, OUT[toolView])); $("#toolStatus").textContent = "Copied."; } catch { $("#toolStatus").textContent = "Copying is blocked here. Use Save instead."; } });
+$("#toolSave").addEventListener("click", () => saveFile(`${toolView}-${slug()}.md`, toMarkdown(toolView, OUT[toolView])));
+$("#hubGo").addEventListener("click", () => { const v = $("#hubSrc").value.trim(); if (v) { $("#src").value = v; srcHint(); } show("lesson"); if (v) make(); });
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+$("#voiceLink").innerHTML = window.claude ? `Want natural, human-sounding voices on your phone? Open <a href="https://luffs764.github.io" target="_blank" rel="noopener">luffs764.github.io</a> in Safari.` : "";
+show(location.hash.slice(1) || "hub");
 })();
 </script>
 </body>
