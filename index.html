@@ -1476,6 +1476,21 @@ async function aiLesson({ input, topicMode, seconds, how, style, signal }) {
   return { title, scenes, source: topicMode ? scenes.map((x) => x.narration).join("\n\n") : input, style, notes: [], by: AI.by };
 }
 
+// No AI? A topic is read from Wikipedia and the built-in engine builds the lesson (works outside Claude).
+async function wiki(topic) {
+  const api = "https://en.wikipedia.org/w/api.php?format=json&origin=*&";
+  let a;
+  try {
+    const f = await (await fetch(api + "action=query&list=search&srlimit=1&srsearch=" + encodeURIComponent(topic))).json();
+    const hit = f?.query?.search?.[0]; if (!hit) throw Object.assign(new Error(`Wikipedia has no article for "${topic}". Try another word.`), { plain: true });
+    a = await (await fetch(api + "action=query&prop=extracts&explaintext=1&redirects=1&exsectionformat=wiki&titles=" + encodeURIComponent(hit.title))).json();
+  } catch (e) { if (e.plain) throw e; throw new Error("Could not reach Wikipedia."); }
+  const page = Object.values(a.query.pages)[0];
+  if (!page?.extract) throw new Error(`The Wikipedia article for "${topic}" has no text.`);
+  return { title: page.title, text: page.extract };
+}
+const canWiki = () => !window.claude;
+
 let abortCtl = null;
 async function make(e) {
   e?.preventDefault();
@@ -1495,10 +1510,17 @@ async function make(e) {
       catch (err) { if (err?.code === "cancelled" || err?.name === "AbortError") { say("Stopped."); return; } why = errMsg(err); }
     } else why = window.claude ? "AI is not available in this view." : "AI is not set up on this device yet.";
     if (!lesson) {
-      if (topicMode) throw new Error(window.claude ? `${why} A topic alone needs AI. Paste your notes (a few sentences) and I will build the lesson with the built-in engine.` : `${why} Paste your Vercel key or your setup link in the "Turn on AI" box above, then press Make lesson again.`);
-      say("Building your lesson with the built-in engine…");
-      const out = plan(analyse(input, ""), { seconds, how });
-      lesson = { title: out.title, scenes: out.scenes, source: input, style, notes: [`${why} I used the built-in engine instead.`, ...out.notes] };
+      if (topicMode && canWiki()) {
+        say("AI is off, so I am reading Wikipedia and building the lesson with the built-in engine…");
+        const w = await wiki(input);
+        const out = plan(analyse(w.text, w.title), { seconds, how });
+        lesson = { title: out.title, scenes: out.scenes, source: w.text, style, notes: ["Built from Wikipedia with the built-in engine, because AI is off.", ...out.notes] };
+      } else if (topicMode) throw new Error(window.claude ? `${why} A topic alone needs AI. Paste your notes (a few sentences) and I will build the lesson with the built-in engine.` : `${why} Paste your Vercel key or your setup link in the "Turn on AI" box above, then press Make lesson again.`);
+      else {
+        say("Building your lesson with the built-in engine…");
+        const out = plan(analyse(input, ""), { seconds, how });
+        lesson = { title: out.title, scenes: out.scenes, source: input, style, notes: [`${why} I used the built-in engine instead.`, ...out.notes] };
+      }
     }
     loadLesson(lesson);
     store.set("opts", { len: $("#len").value, how, theme: $("#theme").value });
@@ -1888,7 +1910,11 @@ async function generateTool() {
       try { d = await aiCall(PROMPTS[kind](kind === "solver" ? input : material(input)), { json: true, tier: kind === "flashcards" || kind === "exam" ? "quick" : "default", signal: toolCtl.signal }); by = AI.by; }
       catch (e) { if (e?.code === "cancelled" || e?.name === "AbortError") { st.textContent = "Stopped."; return; } st.textContent = `${errMsg(e)} Using the built-in engine…`; }
     }
-    if (!d || typeof d !== "object") d = builtinTool(kind, input);
+    if (!d || typeof d !== "object") {
+      let src = input;
+      if (kind !== "solver" && wordsOf(input).length < 40 && canWiki()) { st.textContent = "AI is off, so I am reading Wikipedia…"; src = (await wiki(input)).text; }
+      d = builtinTool(kind, src);
+    }
     if (kind === "podcast") { podPause(); pod.i = 0; }
     OUT[kind] = d; renderTool(kind, d); showToolActions(true);
     st.className = "status ok"; st.textContent = by ? `Made with ${by}.` : "Made with the built-in engine from your notes.";
