@@ -215,6 +215,12 @@ details b { color: var(--chalk); }
 .hero-in { display: grid; gap: 10px; grid-template-columns: 1fr; }
 @media (min-width: 700px) { .hero-in { grid-template-columns: 1fr auto; align-items: end; } }
 .voicelink a { color: var(--mark); font-weight: 700; }
+.hub-voice { display: grid; gap: 6px; }
+.hv-l { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+.hv-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.hv-opt { min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1px solid #ffffff22; background: #ffffff0a; color: var(--chalk); font-weight: 700; cursor: pointer; }
+.hv-opt[aria-checked="true"] { background: var(--mark); color: var(--on-mark); border-color: var(--mark); }
+.ver { max-width: 1100px; margin: 8px auto 28px; padding: 0 16px; font-size: 12px; color: var(--mute); }
 .sec-h { font: 400 26px/1.1 var(--serif); }
 .tools-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .tool { text-align: left; display: grid; gap: 4px; padding: 16px; border-radius: 18px; border: 1px solid #ffffff12; background: linear-gradient(180deg, #1c2523, #151c1a); box-shadow: 0 14px 30px -22px #000, inset 0 1px 0 #ffffff0d; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
@@ -429,6 +435,7 @@ details b { color: var(--chalk); }
     <p>Type a topic or paste your notes once. Then turn it into a lesson, a podcast, a guide, a cheat sheet, flashcards, a quiz and an exam forecast.</p>
     <div class="hero-in">
       <textarea id="hubSrc" rows="3" aria-label="Topic or notes" placeholder="Type a topic, like The French Revolution, or paste your notes."></textarea>
+      <div class="hub-voice"><span class="hv-l">Teacher voice</span><div class="hv-opts" id="hubVoiceOpts" role="radiogroup" aria-label="Teacher voice"></div></div>
       <button type="button" class="btn primary" id="hubGo">Make a lesson</button>
     </div>
     <p class="hint voicelink" id="voiceLink"></p>
@@ -458,6 +465,7 @@ details b { color: var(--chalk); }
 </section>
 
 
+<p class="ver" id="ver"></p>
 <script type="text/plain" id="kokoro-worker">
 // TeacherAI natural voice worker: Kokoro-82M (Apache-2.0) on ONNX Runtime Web; phonemes from eSpeak NG via phonemizer.js.
 // Text normalisation follows kokoro-js (Apache-2.0, Hugging Face).
@@ -1084,6 +1092,12 @@ function bestDeviceVoice(male) {
   const score = (v) => voiceScore(v) + (MALE.test(v.name) === male ? 8 : 0);
   return list.sort((a, b) => score(b) - score(a))[0] || null;
 }
+function renderHubVoices() {
+  const host = document.getElementById("hubVoiceOpts"); if (!host) return;
+  const opts = [...$("#voice").options].filter((o) => !o.disabled && o.value !== "off");
+  host.innerHTML = opts.length ? opts.map((o) => `<button type="button" class="hv-opt" role="radio" aria-checked="${o.value === $("#voice").value}" data-v="${esc(o.value)}">${esc(o.textContent.replace(/ · natural.*| · Claude voice| \(.*\)| · high quality/g, ""))}</button>`).join("") : `<span class="hint">No voice is available in this view.</span>`;
+  host.querySelectorAll(".hv-opt").forEach((b) => (b.onclick = () => { $("#voice").value = b.dataset.v; $("#voice").dispatchEvent(new Event("change")); renderHubVoices(); }));
+}
 function fillVoiceSelect() {
   const sel = $("#voice"); const want = Voice.forced || store.get("voice", "");
   const opts = [];
@@ -1098,7 +1112,7 @@ function fillVoiceSelect() {
   opts.push({ id: "off", label: "Captions only (no sound)" });
   sel.innerHTML = opts.map((o) => `<option value="${esc(o.id)}"${o.disabled ? " disabled" : ""}>${esc(o.label)}</option>`).join("");
   sel.value = opts.some((o) => o.id === want && !o.disabled) ? want : opts[0].id;
-  applyVoice(); refreshPicks();
+  applyVoice(); refreshPicks(); renderHubVoices();
 }
 function applyVoice() {
   const id = $("#voice").value;
@@ -1597,7 +1611,7 @@ $("#scenes").addEventListener("input", (e) => {
   else sc.board = e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 4);
   if (+li.dataset.i === S.i && !S.playing) { buildScene(); }
 });
-$("#voice").addEventListener("change", () => { Voice.forced = ""; applyVoice(); store.set("voice", $("#voice").value); prefetchFrom(S.i); if (S.playing) { S.t = 0; startScene(); } });
+$("#voice").addEventListener("change", () => { renderHubVoices(); Voice.forced = ""; applyVoice(); store.set("voice", $("#voice").value); prefetchFrom(S.i); if (S.playing) { S.t = 0; startScene(); } });
 $("#rate").addEventListener("input", (e) => { S.rate = +e.target.value; store.set("pace", S.rate); });
 $("#saveLesson").addEventListener("click", () => L && saveFile(slug() + "-lesson.json", JSON.stringify({ app: "teacherai-lite", v: 1, title: L.title, style: L.style, scenes: L.scenes.map(({ beat, section, narration, board, icon }) => ({ beat, section, narration, board, icon })), source: L.source }, null, 1)));
 $("#saveNotes").addEventListener("click", () => L && saveFile(slug() + "-notes.md", notesText()));
@@ -1631,6 +1645,9 @@ document.addEventListener("keydown", (e) => {
 }
 
 /* ---------- start ---------- */
+const BUILD = "20 Nov 2026 · voices Heart and Bella";
+const verEl = document.getElementById("ver"); const showVer = () => { verEl.textContent = `Version ${BUILD} · ${window.claude ? "Claude artifact" : Server.base ? "private relay connected" : "no relay"} · ${Natural.supported ? "natural voices on" : "natural voices off"}`; };
+showVer(); setInterval(showVer, 3000);
 const SAMPLE = `Photosynthesis
 Photosynthesis is the process plants, algae and some bacteria use to turn light energy into chemical energy. It happens mostly in the leaves, inside tiny green structures called chloroplasts. Chloroplasts contain chlorophyll, the green pigment that absorbs sunlight, mainly red and blue light.
 
