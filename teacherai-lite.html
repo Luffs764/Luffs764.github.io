@@ -1235,7 +1235,7 @@ function paint() {
   for (const el of capEl.children) { const k = +el.dataset.k; el.classList.toggle("on", k === w); el.classList.toggle("done", k < w); }
   const seg = segsEl.children[S.i]; if (seg) seg.style.setProperty("--p", S.idle ? 0 : clamp(S.t / (S.speechMode ? estSec(sc) : silentDur(sc))));
   // teacher
-  const wt = $("#waitTag"); const waiting = S.playing && S.waitVoice; if (wt.hidden === waiting) wt.hidden = !waiting;
+  const wt = $("#waitTag"); const waiting = S.playing && S.waitVoice; if (!waiting && wt.textContent.startsWith("Down")) wt.textContent = "The teacher is getting ready to speak…"; if (wt.hidden === waiting) wt.hidden = !waiting;
   const talking = S.playing && !S.idle && !S.speechDone && !S.waitVoice && (S.t > 0.2);
   mouthEl.style.transform = `scaleY(${talking ? 0.5 + 0.9 * Math.abs(Math.sin(S.t * 11)) : 0.5})`;
   if (!reduced) bobEl.style.transform = talking ? `translateY(${Math.sin(S.t * 3) * 0.8}px)` : "none";
@@ -1248,7 +1248,7 @@ async function startScene() {
   const sc = prep(cur()); S.speechMode = true;
   if (Voice.kind === "natural") {
     S.waitVoice = true;
-    if (Natural.state !== "ready" && !isCloud(Voice.naturalVoice)) Natural.onProgress = (pct) => { if (my === S.token) say(`Downloading the natural voice: ${pct}% (about 95 MB, only the first time).`); };
+    if (Natural.state !== "ready" && !isCloud(Voice.naturalVoice)) Natural.onProgress = (pct) => { if (my === S.token) { say(`Downloading the natural voice: ${pct}% (about 95 MB, only the first time).`); $("#waitTag").textContent = pct >= 99 ? "Preparing the voice…" : `Downloading the voice: ${pct}% (first time only)`; } };
   } else setTimeout(() => { if (my === S.token && S.playing && S.speechMode && !S.speechDone && !Voice.started) voiceStalled(); }, 3500);
   const pre = Voice.kind === "natural";
   try {
