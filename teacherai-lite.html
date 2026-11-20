@@ -363,16 +363,16 @@ details b { color: var(--chalk); }
         <label for="voice">Teacher voice<select id="voice"></select></label>
         <label for="rate">Speaking speed <input type="range" id="rate" min="0.6" max="1.2" step="0.05" value="0.85"></label>
       </div>
-      <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><button type="button" class="btn" id="premiumBtn">Add premium voices</button><span class="hint" id="voiceNote"></span></div>
+      <div class="voicebar"><button type="button" class="btn" id="testVoice">Test voice</button><span class="hint" id="voiceNote"></span></div>
       <p class="hint" id="cvNote"></p>
       <div class="card ai-setup" id="aiSetup" hidden>
-        <b>Turn on AI (Sonnet, then Grok) and the Fish voices</b>
-        <p class="hint">Vercel and Fish Audio only answer a server, not a web page, so AI runs through your own free relay on Vercel. Paste your relay address (https://….vercel.app) here, or open that address directly.</p>
+        <b>Turn on AI (Sonnet, then Grok)</b>
+        <p class="hint">Vercel only answers a server, not a web page, so AI runs through your own free relay on Vercel. Paste your relay address (https://….vercel.app) here, or open that address directly.</p>
         <details><summary class="hint"><b>How to turn on AI (3 minutes, once)</b></summary><ol class="hint steps">
           <li>Open <a href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a> and import the GitHub repository <b>Luffs764.github.io</b>.</li>
-          <li>Before deploying, open <b>Environment Variables</b> and add <b>AI_GATEWAY_API_KEY</b> (your vck_ key) and <b>FISH_API_KEY</b> (your sk-fish- key).</li>
+          <li>Before deploying, open <b>Environment Variables</b> and add <b>AI_GATEWAY_API_KEY</b> (your vck_ key).</li>
           <li>Tap <b>Deploy</b>. When it finishes, open the address it shows (it ends in .vercel.app) and add it to your Home Screen.</li>
-          <li>That address has AI and the Fish voices. Your keys stay in Vercel, not in the page.</li></ol></details>
+          <li>That address has AI. Your key stays in Vercel, not in the page.</li></ol></details>
         <div class="ask"><input type="text" id="aiPaste" aria-label="Key or setup link" placeholder="https://….vercel.app" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn primary" id="aiPasteGo">Save</button></div>
         <button type="button" class="btn" id="aiPasteClip">Paste from clipboard</button>
       </div>
@@ -381,7 +381,7 @@ details b { color: var(--chalk); }
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </form>
 
-    <details class="card" id="cloudBox">
+    <details class="card" id="cloudBox" hidden>
       <summary>Premium voices: Fish Audio, Microsoft and ElevenLabs</summary>
       <p class="hint">Optional. Add your own key to unlock very natural voices. Each service has a free monthly allowance, and the key stays on this device.</p>
       <label for="azKey">Microsoft Azure Speech key<input type="text" id="azKey" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security: disc"></label>
@@ -931,6 +931,7 @@ const Cloud = {
   cfg: () => ({ azKey: "", azRegion: "eastus", elKey: "", elCustom: "", fishKey: "", ...store.get("cloud", {}), fishVoices: ((store.get("cloud", {}).fishVoices ?? "") === "Your Fish voice=f1a85bf41b4a40b4b770d148175866fc" ? "" : store.get("cloud", {}).fishVoices ?? "") }),
   fishList() { return this.cfg().fishVoices.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const i = l.indexOf("="); return i > 0 ? [l.slice(i + 1).trim(), l.slice(0, i).trim()] : [l, `Fish voice ${l.slice(0, 6)}`]; }); },
   choices() {
+    return []; // premium voices are switched off: only Heart and Bella
     const c = this.cfg(), o = [];
     if (window.claude) return o;
     const srv = Server.tts || {};
@@ -1072,7 +1073,6 @@ function resolveChar(key) {
   else if (pick.startsWith("claude:") && Voice.claude) { st.kind = "claude"; st.claudeVoice = pick.slice(7); }
   else if (pick.startsWith("browser:") && "speechSynthesis" in window) dev(pick.slice(8));
   else if (Voice.claude) st.kind = "claude";
-  else if (Natural.supported && (Cloud.cfg().fishKey.trim() || Server.tts.fish)) { st.kind = "natural"; st.naturalVoice = "fish:" + ch.fish; }
   else if (Natural.supported) st.kind = "natural";
   else if ("speechSynthesis" in window) dev("");
   return st;
@@ -1573,8 +1573,6 @@ $("#src").addEventListener("input", srcHint);
 $("#build").addEventListener("submit", make);
 $("#stop").addEventListener("click", () => abortCtl?.abort());
 $("#testVoice").addEventListener("click", testVoice);
-$("#premiumBtn").addEventListener("click", openPremium);
-if (window.claude) $("#premiumBtn").hidden = true;
 $("#play").addEventListener("click", () => (S.playing ? pause() : play()));
 $("#prev").addEventListener("click", () => L && go(S.t > 2 && S.playing ? S.i : S.i - 1));
 $("#next").addEventListener("click", () => L && (S.i < L.scenes.length - 1 ? go(S.i + 1) : finish()));
@@ -1617,7 +1615,7 @@ document.addEventListener("keydown", (e) => {
 });
 // premium cloud voice keys (saved copy only), shown in the Voices tab
 {
-  if (window.claude) $("#premiumClaude").hidden = false; else $("#voicesCards").appendChild($("#cloudBox"));
+  $("#voicesCards").appendChild($("#cloudBox"));
   const c = Cloud.cfg(); $("#azKey").value = c.azKey; $("#azRegion").value = c.azRegion; $("#elKey").value = c.elKey; $("#fishKey").value = c.fishKey; $("#fishVoices").value = c.fishVoices; $("#elCustom").value = c.elCustom;
   const sync = () => { store.set("cloud", { azKey: $("#azKey").value, azRegion: $("#azRegion").value, elKey: $("#elKey").value, elCustom: $("#elCustom").value, fishKey: $("#fishKey").value, fishVoices: $("#fishVoices").value }); Natural.clips.clear(); fillVoiceSelect(); };
   ["azKey", "azRegion", "elKey", "elCustom", "fishKey", "fishVoices"].forEach((id) => $("#" + id).addEventListener("change", sync));
@@ -1935,7 +1933,7 @@ function applySetup(text) {
   };
   const find = (re) => (text.match(re) || [])[0];
   const relay = find(/https:\/\/[a-z0-9.-]+\.vercel\.app/i);
-  if (relay) { store.set("server", relay.toLowerCase()); saved.push("your relay"); Server.reset().then(() => { updateAiNote(); fillVoiceSelect(); say(Server.base ? (Server.ai ? "Your relay is connected. AI and the Fish voices are on. Press Make lesson." : "Your relay is connected, but its AI key is missing. Add AI_GATEWAY_API_KEY in Vercel and redeploy.") : "I could not reach that relay address. Check that it finished deploying.", Server.base ? "ok" : "err"); }); }
+  if (relay) { store.set("server", relay.toLowerCase()); saved.push("your relay"); Server.reset().then(() => { updateAiNote(); fillVoiceSelect(); say(Server.base ? (Server.ai ? "Your relay is connected. AI is on. Press Make lesson." : "Your relay is connected, but its AI key is missing. Add AI_GATEWAY_API_KEY in Vercel and redeploy.") : "I could not reach that relay address. Check that it finished deploying.", Server.base ? "ok" : "err"); }); }
   put("vercel", find(/vck_[A-Za-z0-9]{20,}/));
   put("fish", find(/sk-fish-[A-Za-z0-9_-]{20,}/));
   put("anthropic", find(/sk-ant-[A-Za-z0-9_-]{20,}/));
