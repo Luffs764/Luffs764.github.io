@@ -1514,7 +1514,7 @@ async function make(e) {
         say("AI is off, so I am reading Wikipedia and building the lesson with the built-in engine…");
         const w = await wiki(input);
         const out = plan(analyse(w.text, w.title), { seconds, how });
-        lesson = { title: out.title, scenes: out.scenes, source: w.text, style, notes: ["Built from Wikipedia with the built-in engine, because AI is off.", ...out.notes] };
+        lesson = { title: out.title, scenes: out.scenes, source: w.text, style, notes: [`AI did not answer (${why}). I built this from Wikipedia with the built-in engine instead.`, ...out.notes] };
       } else if (topicMode) throw new Error(window.claude ? `${why} A topic alone needs AI. Paste your notes (a few sentences) and I will build the lesson with the built-in engine.` : `${why} Paste your Vercel key or your setup link in the "Turn on AI" box above, then press Make lesson again.`);
       else {
         say("Building your lesson with the built-in engine…");
